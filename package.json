@@ -1,0 +1,117 @@
+{
+  "name": "AutoBrowser",
+  "version": "2.0.0",
+  "description": "基于 Electron 的浏览器自动化工具（重构版）",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "kill": "taskkill /F /IM electron.exe 2>nul || echo \"No electron process running\"",
+    "clean-log": "del logs\\app.log 2>nul || echo \"Log file cleaned\"",
+    "dev": "pnpm clean-log && pnpm kill && concurrently -n \"渲染进程,主进程\" -c \"cyan,magenta\" \"pnpm dev:renderer\" \"wait-on http://localhost:5173 && pnpm dev:main\"",
+    "dev:main": "chcp 65001 && electron . --enable-logging",
+    "dev:renderer": "pnpm --filter renderer dev",
+    "dev:pb": "cd pocketbase-db && cmd /c start.bat",
+    "dev:pb-init": "node pocketbase-db/init-pocketbase.js",
+    "build": "pnpm build:renderer && pnpm build:electron",
+    "build:renderer": "pnpm --filter renderer build",
+    "build:electron": "electron-builder",
+    "build:win": "pnpm build:renderer && electron-builder --win",
+    "build:win:dir": "pnpm build:renderer && electron-builder --win --dir",
+    "build:win:nsis": "pnpm build:renderer && electron-builder --win nsis",
+    "dist": "pnpm build",
+    "pack:obfuscate": "node scripts/obfuscate-pack.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.19.0",
+  "build": {
+    "appId": "com.autobrowser.app",
+    "productName": "AutoBrowser",
+    "directories": {
+      "output": "out",
+      "buildResources": "build"
+    },
+    "nodeGypRebuild": false,
+    "npmRebuild": false,
+    "asar": true,
+    "asarUnpack": [],
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "!src/renderer/node_modules/**/*",
+      "!src/renderer/src/**/*",
+      "!src/renderer/**/*.map",
+      "!src/renderer/vite.config.ts",
+      "!src/renderer/tsconfig*.json",
+      "!src/renderer/package.json",
+      "!src/renderer/public",
+      "!src/renderer/.vscode",
+      "!src/renderer/index.html",
+      "!src/**/*.log",
+      "!src/result.json",
+      "!**/*.md",
+      "!**/test/**/*",
+      "!**/*.test.*",
+      "!**/*.spec.*",
+      "!**/README.md"
+    ],
+    "extraResources": [
+      {
+        "from": "pocketbase-db/pocketbase.exe",
+        "to": "pocketbase-db/pocketbase.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "forceCodeSigning": false,
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AutoBrowser"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12",
+    "javascript-obfuscator": "^4.1.0",
+    "wait-on": "^8.0.1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "eventsource": "^4.0.0",
+    "express": "^5.1.0",
+    "pocketbase": "^0.22.0",
+    "workflow-node-executor": "^0.1.3",
+    "ws": "^8.18.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:rolldown-vite@7.1.14"
+    }
+  }
+}

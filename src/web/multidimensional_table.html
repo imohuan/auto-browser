@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多维表格系统 DEMO</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Element Plus -->
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+
+  <!-- AG Grid CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/ag-grid-community@32.0.0/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://unpkg.com/ag-grid-community@32.0.0/styles/ag-theme-alpine.css" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" class="h-screen flex flex-col">
+    <!-- 顶部导航 -->
+    <div class="bg-blue-600 text-white p-4 shadow-lg">
+      <h1 class="text-2xl font-bold">多维表格系统 DEMO</h1>
+      <p class="text-sm mt-1">基于 Electron + PocketBase + AG Grid</p>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="bg-gray-100 p-3 border-b flex gap-3 items-center">
+      <el-button type="primary" @click="addRow" :icon="Plus">
+        添加行
+      </el-button>
+      <el-button @click="refreshData" :icon="Refresh">刷新</el-button>
+      <el-button @click="exportCSV" :icon="Download">导出CSV</el-button>
+      <div class="flex-1"></div>
+      <el-tag :type="connectionStatus ? 'success' : 'danger'">
+        {{ connectionStatus ? "已连接" : "未连接" }}
+      </el-tag>
+    </div>
+
+    <!-- 表格容器 -->
+    <div class="flex-1 p-4">
+      <div id="myGrid" class="ag-theme-alpine" style="width: 100%; height: 100%"></div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="bg-gray-100 p-2 border-t text-sm text-gray-600">
+      <span>数据行数: {{ rowCount }}</span>
+      <span class="ml-4">最后更新: {{ lastUpdate }}</span>
+    </div>
+  </div>
+
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <!-- Element Plus -->
+  <script src="https://unpkg.com/element-plus"></script>
+
+  <!-- Element Plus Icons -->
+  <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+
+  <!-- AG Grid -->
+  <script src="https://unpkg.com/ag-grid-community@32.0.0/dist/ag-grid-community.min.js"></script>
+
+  <!-- PocketBase SDK -->
+  <script src="https://unpkg.com/pocketbase@0.21.5/dist/pocketbase.umd.js"></script>
+
+  <!-- Lodash -->
+  <script src="https://unpkg.com/lodash@4.17.21/lodash.min.js"></script>
+
+  <script type="module">
+    const { createApp, ref, onMounted, onUnmounted } = Vue;
+    const { ElMessage } = ElementPlus;
+
+    createApp({
+      setup() {
+        // 状态
+        const connectionStatus = ref(false);
+        const rowCount = ref(0);
+        const lastUpdate = ref("--");
+        const isUpdatingFromRealtime = ref(false);
+
+        // AG Grid API
+        let gridApi = null;
+        let pb = null;
+
+        // Element Plus Icons
+        const Plus = ElementPlusIconsVue.Plus;
+        const Refresh = ElementPlusIconsVue.Refresh;
+        const Download = ElementPlusIconsVue.Download;
+
+        // 列定义
+        const columnDefs = [
+          {
+            field: "row",
+            headerName: "行",
+            width: 80,
+            editable: false,
+            pinned: "left",
+          },
+          {
+            field: "col",
+            headerName: "列",
+            width: 80,
+            editable: false,
+            pinned: "left",
+          },
+          { field: "value", headerName: "输入值", editable: true, width: 150 },
+          {
+            field: "computed_value",
+            headerName: "计算结果",
+            editable: false,
+            width: 150,
+          },
+          { field: "formula", headerName: "公式", editable: true, width: 200 },
+          {
+            field: "data_type",
+            headerName: "类型",
+            editable: true,
+            width: 120,
+            cellEditor: "agSelectCellEditor",
+            cellEditorParams: {
+              values: ["text", "number", "date", "formula"],
+            },
+          },
+          {
+            field: "status",
+            headerName: "状态",
+            editable: false,
+            width: 150,
+            cellRenderer: (params) => {
+              const statusMap = {
+                pending: '<span style="color: #909399;">⏳ 待处理</span>',
+                computing: '<span style="color: #409eff;">⚙️ 计算中...</span>',
+                completed: '<span style="color: #67c23a;">✅ 完成</span>',
+                error: '<span style="color: #f56c6c;">❌ 错误</span>',
+              };
+              return statusMap[params.value] || params.value;
+            },
+          },
+          {
+            field: "error_message",
+            headerName: "错误信息",
+            editable: false,
+            width: 200,
+            cellRenderer: (params) => {
+              if (!params.value) return "";
+              return `<span style="color: #f56c6c; font-size: 12px;">${params.value}</span>`;
+            },
+          },
+          {
+            field: "updated",
+            headerName: "更新时间",
+            editable: false,
+            width: 180,
+            valueFormatter: (params) => {
+              if (!params.value) return "--";
+              return new Date(params.value).toLocaleString("zh-CN");
+            },
+          },
+        ];
+
+        // 默认列配置
+        const defaultColDef = {
+          resizable: true,
+          sortable: true,
+          filter: true,
+        };
+
+        // 初始化 AG Grid
+        function initGrid() {
+          const gridOptions = {
+            columnDefs: columnDefs,
+            defaultColDef: defaultColDef,
+            rowData: [],
+            enableCellChangeFlash: true,
+            animateRows: true,
+            onCellValueChanged: onCellChanged,
+            onGridReady: onGridReady,
+            getRowId: (params) => params.data.id,
+          };
+
+          const gridDiv = document.querySelector("#myGrid");
+          gridApi = agGrid.createGrid(gridDiv, gridOptions);
+        }
+
+        // 网格就绪
+        async function onGridReady() {
+          console.log("[Grid] AG Grid 已就绪");
+          await initPocketBase();
+          await loadData();
+          subscribeRealtime();
+        }
+
+        // 初始化 PocketBase
+        async function initPocketBase() {
+          try {
+            pb = new PocketBase(window.pocketbaseAPI.url);
+
+            // 尝试连接
+            await pb.health.check();
+            connectionStatus.value = true;
+
+            console.log("[PB] PocketBase 连接成功");
+            ElMessage.success("PocketBase 连接成功");
+          } catch (error) {
+            console.error("[PB] 连接失败:", error);
+            connectionStatus.value = false;
+            ElMessage.error("PocketBase 连接失败，请确保服务已启动");
+          }
+        }
+
+        // 加载数据
+        async function loadData() {
+          try {
+            const records = await pb.collection("spread").getFullList({
+              sort: "row,col",
+            });
+
+            gridApi.setGridOption("rowData", records);
+            rowCount.value = records.length;
+            lastUpdate.value = new Date().toLocaleTimeString("zh-CN");
+
+            console.log(`[Grid] 加载 ${records.length} 条数据`);
+          } catch (error) {
+            console.error("[Grid] 加载数据失败:", error);
+            ElMessage.error(`加载数据失败: ${error.message}`);
+          }
+        }
+
+        // 单元格值变更 (防抖)
+        const onCellChanged = _.debounce(async (event) => {
+          // 防止实时更新触发循环
+          if (isUpdatingFromRealtime.value) {
+            return;
+          }
+
+          const { data, colDef, newValue, oldValue } = event;
+
+          console.log("[Grid] 用户编辑:", {
+            recordId: data.id,
+            field: colDef.field,
+            oldValue,
+            newValue,
+          });
+
+          try {
+            const updateData = {
+              [colDef.field]: newValue,
+              updated: new Date().toISOString(),
+            };
+
+            // 如果是需要计算的字段（value 或 formula），设置状态为计算中
+            const needsCalculation =
+              colDef.field === "value" || colDef.field === "formula";
+
+            if (needsCalculation) {
+              updateData.status = "computing";
+              console.log("[Grid] 字段需要计算，状态设为 computing，后台服务将自动处理");
+            }
+
+            console.log("[Grid] 保存数据到数据库:", updateData);
+
+            // 保存到数据库后，Electron 主进程会通过 PocketBase 实时订阅自动触发计算
+            await pb.collection("spread").update(data.id, updateData);
+
+            console.log("[Grid] 数据已保存，等待后台自动计算...");
+          } catch (error) {
+            console.error("[Grid] 保存数据失败:", error);
+            ElMessage.error(`保存失败: ${error.message}`);
+
+            // 恢复旧值
+            event.node.setDataValue(colDef.field, oldValue);
+            event.node.setDataValue("status", "error");
+          }
+        }, 400);
+
+        // 订阅 PocketBase 实时更新
+        function subscribeRealtime() {
+          pb.collection("spread").subscribe("*", (e) => {
+            console.log("[Realtime] 收到事件:", {
+              action: e.action,
+              recordId: e.record.id,
+              status: e.record.status,
+              computedValue: e.record.computed_value,
+            });
+
+            // 设置标志，防止触发 cellChanged 事件
+            isUpdatingFromRealtime.value = true;
+
+            if (e.action === "update") {
+              // 使用 setTimeout 确保在下一个事件循环中更新
+              setTimeout(() => {
+                gridApi.applyTransactionAsync(
+                  { update: [e.record] },
+                  () => {
+                    isUpdatingFromRealtime.value = false;
+                    lastUpdate.value = new Date().toLocaleTimeString("zh-CN");
+                    console.log("[Realtime] UI 更新完成");
+                  }
+                );
+              }, 0);
+            } else if (e.action === "create") {
+              gridApi.applyTransactionAsync({ add: [e.record] }, () => {
+                isUpdatingFromRealtime.value = false;
+              });
+              rowCount.value++;
+              console.log("[Realtime] 新增记录已添加到表格");
+            } else if (e.action === "delete") {
+              gridApi.applyTransactionAsync({ remove: [e.record] }, () => {
+                isUpdatingFromRealtime.value = false;
+              });
+              rowCount.value--;
+              console.log("[Realtime] 记录已从表格删除");
+            }
+          });
+
+          console.log("[Realtime] 已订阅实时更新");
+        }
+
+        // 添加行
+        async function addRow() {
+          try {
+            const newRow = {
+              sheet_id: "default",
+              row: rowCount.value + 1,
+              col: 1,
+              value: "",
+              computed_value: "",
+              formula: "",
+              data_type: "text",
+              status: "pending",
+            };
+
+            await pb.collection("spread").create(newRow);
+            ElMessage.success("添加成功");
+          } catch (error) {
+            console.error("[Grid] 添加行失败:", error);
+            ElMessage.error(`添加失败: ${error.message}`);
+          }
+        }
+
+        // 刷新数据
+        async function refreshData() {
+          await loadData();
+          ElMessage.success("刷新成功");
+        }
+
+        // 导出 CSV
+        function exportCSV() {
+          gridApi.exportDataAsCsv({
+            fileName: `spreadsheet_${Date.now()}.csv`,
+          });
+          ElMessage.success("导出成功");
+        }
+
+        // 初始化应用
+        onMounted(() => {
+          console.log("[App] Vue 应用已挂载");
+          initGrid();
+        });
+
+        // 清理订阅
+        onUnmounted(() => {
+          if (pb) {
+            pb.collection("spread").unsubscribe("*");
+            console.log("[App] PocketBase 订阅已清理");
+          }
+        });
+
+        return {
+          connectionStatus,
+          rowCount,
+          lastUpdate,
+          addRow,
+          refreshData,
+          exportCSV,
+          Plus,
+          Refresh,
+          Download,
+        };
+      },
+    }).use(ElementPlus).mount("#app");
+  </script>
+</body>
+
+</html>

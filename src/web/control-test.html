@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自动化测试页面</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <!-- 页面标题 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h1 class="text-3xl font-bold text-indigo-600 mb-2">🧪 自动化测试页面</h1>
+      <p class="text-gray-600">此页面包含各种 HTML 元素，用于测试浏览器自动化功能</p>
+    </div>
+
+    <!-- 表单区域 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">📝 表单测试</h2>
+
+      <form id="testForm" class="space-y-4">
+        <!-- 文本输入框 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+          <input type="text" id="username" name="username" placeholder="请输入用户名"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <!-- 密码输入框 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+          <input type="password" id="password" name="password" placeholder="请输入密码"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <!-- 邮箱输入框 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+          <input type="email" id="email" name="email" placeholder="example@email.com"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <!-- 下拉选择框 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">选择城市</label>
+          <select id="city" name="city"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">请选择</option>
+            <option value="beijing">北京</option>
+            <option value="shanghai">上海</option>
+            <option value="guangzhou">广州</option>
+            <option value="shenzhen">深圳</option>
+          </select>
+        </div>
+
+        <!-- 单选框 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">性别</label>
+          <div class="flex gap-4">
+            <label class="flex items-center">
+              <input type="radio" name="gender" value="male" class="mr-2">
+              <span>男</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="gender" value="female" class="mr-2">
+              <span>女</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 复选框 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">兴趣爱好</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center">
+              <input type="checkbox" id="hobby-reading" name="hobby" value="reading" class="mr-2">
+              <span>阅读</span>
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" id="hobby-music" name="hobby" value="music" class="mr-2">
+              <span>音乐</span>
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" id="hobby-sports" name="hobby" value="sports" class="mr-2">
+              <span>运动</span>
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" id="hobby-travel" name="hobby" value="travel" class="mr-2">
+              <span>旅游</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 文本域 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">个人简介</label>
+          <textarea id="bio" name="bio" rows="4" placeholder="请输入个人简介..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <!-- 文件上传 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">文件上传</label>
+          <input type="file" id="fileInput" name="file"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <div id="fileResult" class="mt-2 text-sm text-gray-600"></div>
+        </div>
+
+        <!-- 提交按钮 -->
+        <div class="flex gap-3">
+          <button type="submit" id="submitBtn"
+            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition">
+            提交表单
+          </button>
+          <button type="reset" id="resetBtn"
+            class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition">
+            重置表单
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 按钮测试区域 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">🔘 按钮测试</h2>
+      <div class="grid grid-cols-3 gap-3">
+        <button id="btn-1" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition">
+          按钮 1
+        </button>
+        <button id="btn-2" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition">
+          按钮 2
+        </button>
+        <button id="btn-3" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition">
+          按钮 3
+        </button>
+        <button id="btn-4" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-lg transition">
+          按钮 4
+        </button>
+        <button id="btn-5" class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition">
+          按钮 5
+        </button>
+        <button id="btn-6" class="bg-pink-500 hover:bg-pink-600 text-white py-2 px-4 rounded-lg transition">
+          按钮 6
+        </button>
+      </div>
+    </div>
+
+    <!-- 搜索测试区域 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">🔍 搜索测试</h2>
+      <div class="flex gap-2">
+        <input type="text" id="searchInput" placeholder="输入搜索内容..."
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <button id="searchBtn"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition">
+          搜索
+        </button>
+      </div>
+      <div id="searchResult" class="mt-3 text-sm text-gray-600"></div>
+    </div>
+
+    <!-- 列表测试区域 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">📋 列表测试</h2>
+      <ul id="itemList" class="space-y-2">
+        <li class="item flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <span>列表项 1</span>
+          <button
+            class="delete-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition">删除</button>
+        </li>
+        <li class="item flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <span>列表项 2</span>
+          <button
+            class="delete-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition">删除</button>
+        </li>
+        <li class="item flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <span>列表项 3</span>
+          <button
+            class="delete-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition">删除</button>
+        </li>
+      </ul>
+      <button id="addItemBtn" class="mt-3 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition">
+        添加列表项
+      </button>
+    </div>
+
+    <!-- 对话框测试 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">💬 对话框测试</h2>
+      <div class="flex gap-3">
+        <button id="alertBtn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition">
+          Alert 对话框
+        </button>
+        <button id="confirmBtn"
+          class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg transition">
+          Confirm 对话框
+        </button>
+        <button id="promptBtn"
+          class="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition">
+          Prompt 对话框
+        </button>
+      </div>
+    </div>
+
+    <!-- 内容提取测试 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">📄 内容提取测试</h2>
+
+      <!-- 测试文章内容 -->
+      <article id="testArticle" class="mb-6 p-4 bg-blue-50 rounded-lg">
+        <h3 class="text-lg font-bold mb-3">测试文章标题：Electron 自动化测试指南</h3>
+        <div class="text-sm text-gray-600 mb-2">
+          作者：测试作者 | 发布时间：2025-10-31
+        </div>
+        <p class="mb-3 leading-relaxed">
+          这是一篇用于测试 Readability 内容提取功能的示例文章。Readability 是一个强大的内容提取库，
+          能够从网页中智能提取主要内容，去除广告、导航等干扰元素。
+        </p>
+        <p class="mb-3 leading-relaxed">
+          在 Electron 应用中集成 Readability，可以帮助我们更好地处理网页内容，提取有价值的信息。
+          这对于构建自动化工具、数据采集工具等场景非常有用。
+        </p>
+        <h4 class="text-base font-semibold mb-2 mt-4">主要功能特点</h4>
+        <ul class="list-disc list-inside space-y-1 mb-3">
+          <li>智能识别文章主体内容</li>
+          <li>自动提取标题、作者等元数据</li>
+          <li>去除广告和无关内容</li>
+          <li>支持多语言网页处理</li>
+        </ul>
+        <p class="leading-relaxed">
+          通过本测试页面，您可以验证各种内容提取功能是否正常工作。
+        </p>
+      </article>
+
+      <div class="flex gap-3">
+        <button id="testReadabilityBtn"
+          class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition">
+          测试 Readability 提取
+        </button>
+        <button id="testMetadataBtn"
+          class="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition">
+          提取元数据
+        </button>
+        <button id="testHtmlBtn"
+          class="flex-1 bg-teal-500 hover:bg-teal-600 text-white py-2 px-4 rounded-lg transition">
+          提取 HTML
+        </button>
+      </div>
+    </div>
+
+    <!-- 网络请求测试 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">🌐 网络请求测试</h2>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">API 地址</label>
+        <input type="text" id="apiUrl" value="https://jsonplaceholder.typicode.com/posts/1"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+
+      <div class="flex gap-3 mb-4">
+        <button id="testGetRequestBtn"
+          class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition">
+          GET 请求
+        </button>
+        <button id="testPostRequestBtn"
+          class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition">
+          POST 请求
+        </button>
+        <button id="testMultipleRequestsBtn"
+          class="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition">
+          批量请求
+        </button>
+      </div>
+
+      <div id="networkResult" class="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 min-h-[80px]">
+        等待网络请求...
+      </div>
+    </div>
+
+    <!-- 网络捕获测试 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">📡 网络捕获测试</h2>
+
+      <div class="flex gap-3 mb-4">
+        <button id="startCaptureBtn"
+          class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition">
+          开始捕获
+        </button>
+        <button id="stopCaptureBtn"
+          class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition">
+          停止捕获
+        </button>
+        <button id="triggerRequestsBtn"
+          class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-lg transition">
+          触发测试请求
+        </button>
+      </div>
+
+      <div id="captureResult" class="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 min-h-[80px]">
+        网络捕获未启动
+      </div>
+    </div>
+
+    <!-- 操作结果显示 -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">📊 操作结果</h2>
+      <div id="resultArea" class="bg-gray-50 rounded-lg p-4 min-h-[100px] text-sm text-gray-600">
+        等待操作...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 表单提交
+    document.getElementById('testForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+      showResult('表单提交成功！', data);
+    });
+
+    // 按钮点击
+    document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        showResult(`点击了 ${btn.textContent}`);
+      });
+    });
+
+    // 搜索
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const keyword = document.getElementById('searchInput').value;
+      document.getElementById('searchResult').textContent = keyword ? `搜索: "${keyword}"` : '请输入搜索内容';
+      showResult(`执行搜索: ${keyword || '(空)'}`);
+    });
+
+    // 添加列表项
+    let itemCount = 3;
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+      itemCount++;
+      const list = document.getElementById('itemList');
+      const li = document.createElement('li');
+      li.className = 'item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+      li.innerHTML = `
+        <span>列表项 ${itemCount}</span>
+        <button class="delete-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition">删除</button>
+      `;
+      list.appendChild(li);
+      showResult(`添加了列表项 ${itemCount}`);
+
+      // 添加删除事件
+      li.querySelector('.delete-btn').addEventListener('click', () => {
+        li.remove();
+        showResult(`删除了列表项`);
+      });
+    });
+
+    // 删除列表项
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('li').remove();
+        showResult('删除了列表项');
+      });
+    });
+
+    // 文件上传
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files.length > 0) {
+        const fileName = files[0].name;
+        const fileSize = (files[0].size / 1024).toFixed(2);
+        document.getElementById('fileResult').textContent = `已选择: ${fileName} (${fileSize} KB)`;
+        showResult(`文件选择成功: ${fileName}`);
+      }
+    });
+
+    // 对话框
+    document.getElementById('alertBtn').addEventListener('click', () => {
+      alert('这是一个 Alert 对话框！');
+      showResult('显示了 Alert 对话框');
+    });
+
+    document.getElementById('confirmBtn').addEventListener('click', () => {
+      const result = confirm('确认执行此操作吗？');
+      showResult(`Confirm 对话框 - 用户选择: ${result ? '确认' : '取消'}`);
+    });
+
+    document.getElementById('promptBtn').addEventListener('click', () => {
+      const result = prompt('请输入您的名字:');
+      showResult(`Prompt 对话框 - 用户输入: ${result || '(取消)'}`);
+    });
+
+    // 显示结果
+    function showResult(message, data = null) {
+      const resultArea = document.getElementById('resultArea');
+      const time = new Date().toLocaleTimeString('zh-CN');
+      let html = `<div class="mb-2"><span class="text-indigo-600 font-medium">[${time}]</span> ${message}</div>`;
+
+      if (data) {
+        html += `<pre class="bg-gray-100 p-2 rounded text-xs overflow-auto">${JSON.stringify(data, null, 2)}</pre>`;
+      }
+
+      resultArea.innerHTML = html + resultArea.innerHTML;
+    }
+
+    // 内容提取测试
+    document.getElementById('testReadabilityBtn').addEventListener('click', async () => {
+      showResult('开始 Readability 内容提取测试...');
+      try {
+        if (window.__browserHelpers && window.__browserHelpers.getTextContent) {
+          const result = window.__browserHelpers.getTextContent();
+          if (result.success) {
+            showResult('✅ Readability 提取成功！', {
+              textLength: result.textContent?.length || 0,
+              title: result.article?.title || '未知',
+              byline: result.article?.byline || '未知',
+              excerpt: result.article?.excerpt?.substring(0, 100) || '无'
+            });
+          } else {
+            showResult('❌ 提取失败: ' + (result.error || '未知错误'));
+          }
+        } else {
+          showResult('⚠️ browser-helpers 未加载或方法不存在');
+        }
+      } catch (error) {
+        showResult('❌ 测试出错: ' + error.message);
+      }
+    });
+
+    document.getElementById('testMetadataBtn').addEventListener('click', async () => {
+      showResult('开始提取元数据...');
+      try {
+        if (window.__browserHelpers && window.__browserHelpers.extractPageMetadata) {
+          const metadata = window.__browserHelpers.extractPageMetadata();
+          showResult('✅ 元数据提取成功！', metadata);
+        } else {
+          showResult('⚠️ browser-helpers 未加载或方法不存在');
+        }
+      } catch (error) {
+        showResult('❌ 测试出错: ' + error.message);
+      }
+    });
+
+    document.getElementById('testHtmlBtn').addEventListener('click', async () => {
+      showResult('开始提取 HTML 内容...');
+      try {
+        if (window.__browserHelpers && window.__browserHelpers.getHtmlContent) {
+          const result = window.__browserHelpers.getHtmlContent('#testArticle');
+          if (result.success) {
+            showResult('✅ HTML 提取成功！', {
+              htmlLength: result.htmlContent?.length || 0,
+              preview: result.htmlContent?.substring(0, 200) + '...'
+            });
+          } else {
+            showResult('❌ 提取失败: ' + (result.error || '未知错误'));
+          }
+        } else {
+          showResult('⚠️ browser-helpers 未加载或方法不存在');
+        }
+      } catch (error) {
+        showResult('❌ 测试出错: ' + error.message);
+      }
+    });
+
+    // 网络请求测试
+    function showNetworkResult(message, data = null) {
+      const resultArea = document.getElementById('networkResult');
+      const time = new Date().toLocaleTimeString('zh-CN');
+      let html = `<div class="mb-2"><span class="text-green-600 font-medium">[${time}]</span> ${message}</div>`;
+      if (data) {
+        html += `<pre class="bg-gray-100 p-2 rounded text-xs overflow-auto">${JSON.stringify(data, null, 2)}</pre>`;
+      }
+      resultArea.innerHTML = html + resultArea.innerHTML;
+    }
+
+    document.getElementById('testGetRequestBtn').addEventListener('click', async () => {
+      const url = document.getElementById('apiUrl').value;
+      showNetworkResult(`发送 GET 请求: ${url}`);
+      try {
+        if (window.__browserHelpers && window.__browserHelpers.sendNetworkRequest) {
+          const result = window.__browserHelpers.sendNetworkRequest(url, 'GET', null, null, 30000);
+          if (result.success) {
+            showNetworkResult('✅ 请求成功', {
+              status: result.response.status,
+              statusText: result.response.statusText,
+              bodyPreview: JSON.stringify(result.response.body).substring(0, 200)
+            });
+          } else {
+            showNetworkResult('❌ 请求失败: ' + result.error);
+          }
+        } else {
+          showNetworkResult('⚠️ browser-helpers 未加载');
+        }
+      } catch (error) {
+        showNetworkResult('❌ 测试出错: ' + error.message);
+      }
+    });
+
+    document.getElementById('testPostRequestBtn').addEventListener('click', async () => {
+      const url = document.getElementById('apiUrl').value;
+      const postData = JSON.stringify({ title: '测试标题', body: '测试内容', userId: 1 });
+      showNetworkResult(`发送 POST 请求: ${url}`);
+      try {
+        if (window.__browserHelpers && window.__browserHelpers.sendNetworkRequest) {
+          const result = window.__browserHelpers.sendNetworkRequest(
+            url, 'POST',
+            { 'Content-Type': 'application/json' },
+            postData,
+            30000
+          );
+          if (result.success) {
+            showNetworkResult('✅ POST 请求成功', {
+              status: result.response.status,
+              responseBody: result.response.body
+            });
+          } else {
+            showNetworkResult('❌ 请求失败: ' + result.error);
+          }
+        } else {
+          showNetworkResult('⚠️ browser-helpers 未加载');
+        }
+      } catch (error) {
+        showNetworkResult('❌ 测试出错: ' + error.message);
+      }
+    });
+
+    document.getElementById('testMultipleRequestsBtn').addEventListener('click', async () => {
+      showNetworkResult('开始批量请求测试...');
+      const urls = [
+        'https://jsonplaceholder.typicode.com/posts/1',
+        'https://jsonplaceholder.typicode.com/users/1',
+        'https://jsonplaceholder.typicode.com/comments/1'
+      ];
+
+      for (const url of urls) {
+        try {
+          if (window.__browserHelpers && window.__browserHelpers.sendNetworkRequest) {
+            const result = window.__browserHelpers.sendNetworkRequest(url, 'GET', null, null, 30000);
+            if (result.success) {
+              showNetworkResult(`✅ ${url} - ${result.response.status}`);
+            }
+          }
+          await new Promise(r => setTimeout(r, 500)); // 延迟 500ms
+        } catch (error) {
+          showNetworkResult(`❌ ${url} - ${error.message}`);
+        }
+      }
+      showNetworkResult('批量请求完成');
+    });
+
+    // 网络捕获测试
+    function showCaptureResult(message, data = null) {
+      const resultArea = document.getElementById('captureResult');
+      const time = new Date().toLocaleTimeString('zh-CN');
+      let html = `<div class="mb-2"><span class="text-blue-600 font-medium">[${time}]</span> ${message}</div>`;
+      if (data) {
+        html += `<pre class="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-40">${JSON.stringify(data, null, 2)}</pre>`;
+      }
+      resultArea.innerHTML = html + resultArea.innerHTML;
+    }
+
+    document.getElementById('startCaptureBtn').addEventListener('click', async () => {
+      showCaptureResult('开始网络捕获...');
+      try {
+        if (window.electronAPI && window.electronAPI.invoke) {
+          const result = await window.electronAPI.invoke('network:startDebuggerCapture', {
+            maxCaptureTime: 180000,
+            inactivityTimeout: 60000,
+            includeStatic: false
+          });
+          if (result.success) {
+            showCaptureResult(`✅ 网络捕获已启动 (最大 ${result.maxRequests} 个请求)`);
+          } else {
+            showCaptureResult('❌ 启动失败: ' + result.message);
+          }
+        } else {
+          showCaptureResult('⚠️ electronAPI 未加载');
+        }
+      } catch (error) {
+        showCaptureResult('❌ 操作失败: ' + error.message);
+      }
+    });
+
+    document.getElementById('stopCaptureBtn').addEventListener('click', async () => {
+      showCaptureResult('停止网络捕获...');
+      try {
+        if (window.electronAPI && window.electronAPI.invoke) {
+          const result = await window.electronAPI.invoke('network:stopDebuggerCapture');
+          if (result.success) {
+            showCaptureResult(`✅ 捕获完成: ${result.requestCount} 个请求`, {
+              duration: `${(result.totalDurationMs / 1000).toFixed(1)}s`,
+              stoppedBy: result.stoppedBy,
+              requestCount: result.requestCount
+            });
+            // 显示前 3 个请求
+            if (result.requests && result.requests.length > 0) {
+              const summary = result.requests.slice(0, 3).map(r =>
+                `${r.method} ${r.url.substring(0, 50)}...`
+              );
+              showCaptureResult('捕获的请求（前3个）:', summary);
+            }
+          } else {
+            showCaptureResult('❌ 停止失败: ' + result.message);
+          }
+        } else {
+          showCaptureResult('⚠️ electronAPI 未加载');
+        }
+      } catch (error) {
+        showCaptureResult('❌ 操作失败: ' + error.message);
+      }
+    });
+
+    document.getElementById('triggerRequestsBtn').addEventListener('click', async () => {
+      showCaptureResult('触发测试请求...');
+      const urls = [
+        'https://jsonplaceholder.typicode.com/posts/1',
+        'https://jsonplaceholder.typicode.com/users/1'
+      ];
+
+      for (const url of urls) {
+        try {
+          if (window.__browserHelpers && window.__browserHelpers.sendNetworkRequest) {
+            window.__browserHelpers.sendNetworkRequest(url, 'GET', null, null, 30000);
+            showCaptureResult(`📤 触发请求: ${url}`);
+          }
+          await new Promise(r => setTimeout(r, 300));
+        } catch (error) {
+          showCaptureResult(`❌ 触发失败: ${error.message}`);
+        }
+      }
+    });
+
+    // 页面加载完成
+    window.addEventListener('load', () => {
+      showResult('页面加载完成，可以开始测试了！');
+      // 检查功能可用性
+      if (window.__browserHelpers) {
+        showResult('✅ browser-helpers 已加载');
+      }
+      if (window.electronAPI) {
+        showResult('✅ electronAPI 已加载');
+      }
+    });
+  </script>
+</body>
+
+</html>

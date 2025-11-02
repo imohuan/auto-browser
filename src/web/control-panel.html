@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoBrowser 控制面板</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Element Plus CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Element Plus -->
+  <script src="https://unpkg.com/element-plus"></script>
+  <!-- Element Plus Icons -->
+  <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    #app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #f5f7fa;
+    }
+
+    /* 顶部标题栏 */
+    .header-bar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: #67c23a;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    /* 标签页样式 */
+    .el-tabs {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .el-tabs__content {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .el-tab-pane {
+      height: 100%;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    /* 操作卡片网格 */
+    .operations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 8px;
+    }
+
+    /* 卡片样式 */
+    .operation-card {
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid #e4e7ed;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .operation-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+      border-color: #667eea;
+    }
+
+    /* 标准测试卡片 - 蓝色主题 */
+    .operation-card.standard-test {
+      background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 100%);
+      border-color: #90caf9;
+    }
+
+    .operation-card.standard-test:hover {
+      background: linear-gradient(135deg, #bbdefb 0%, #e3f2fd 100%);
+      border-color: #64b5f6;
+      box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
+    }
+
+    .operation-card.standard-test .operation-icon {
+      background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+    }
+
+    /* 增强测试卡片 - 紫色主题 */
+    .operation-card.enhanced-test {
+      background: linear-gradient(135deg, #f3e5f5 0%, #fce4ec 100%);
+      border-color: #ce93d8;
+    }
+
+    .operation-card.enhanced-test:hover {
+      background: linear-gradient(135deg, #e1bee7 0%, #f8bbd0 100%);
+      border-color: #ba68c8;
+      box-shadow: 0 4px 12px rgba(186, 104, 200, 0.3);
+    }
+
+    .operation-card.enhanced-test .operation-icon {
+      background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%);
+    }
+
+    /* 综合测试卡片 - 绿色主题 */
+    .operation-card.combined-test {
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+      border-color: #a5d6a7;
+    }
+
+    .operation-card.combined-test:hover {
+      background: linear-gradient(135deg, #c8e6c9 0%, #dcedc8 100%);
+      border-color: #81c784;
+      box-shadow: 0 4px 12px rgba(129, 199, 132, 0.3);
+    }
+
+    .operation-card.combined-test .operation-icon {
+      background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+    }
+
+    .operation-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .operation-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      flex-shrink: 0;
+    }
+
+    .operation-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #303133;
+      flex: 1;
+      line-height: 1.3;
+    }
+
+    .operation-description {
+      font-size: 11px;
+      color: #909399;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .operation-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .el-input,
+    .el-textarea {
+      font-size: 12px;
+    }
+
+    .operation-button {
+      width: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      font-weight: 500;
+      height: 28px;
+      font-size: 12px;
+      margin-top: auto;
+    }
+
+    .operation-button:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #6b4193 100%);
+    }
+
+    /* 日志区域 */
+    .logs-container {
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      height: calc(100% - 16px);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .logs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e4e7ed;
+    }
+
+    .logs-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .logs-content {
+      flex: 1;
+      overflow-y: auto;
+      background: #f9fafb;
+      border-radius: 6px;
+      padding: 8px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 11px;
+    }
+
+    .log-item {
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      animation: slideIn 0.3s ease-out;
+      background: white;
+      border-left: 2px solid #e4e7ed;
+    }
+
+    .log-item.info {
+      border-left-color: #409eff;
+    }
+
+    .log-item.success {
+      border-left-color: #67c23a;
+    }
+
+    .log-item.warn {
+      border-left-color: #e6a23c;
+    }
+
+    .log-item.error {
+      border-left-color: #f56c6c;
+    }
+
+    .log-level {
+      font-weight: 600;
+      min-width: 50px;
+      font-size: 10px;
+    }
+
+    .log-level.info {
+      color: #409eff;
+    }
+
+    .log-level.success {
+      color: #67c23a;
+    }
+
+    .log-level.warn {
+      color: #e6a23c;
+    }
+
+    .log-level.error {
+      color: #f56c6c;
+    }
+
+    .log-message {
+      flex: 1;
+      color: #606266;
+      word-break: break-all;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f3f5;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #6b4193 100%);
+    }
+
+    /* 自动化脚本卡片特殊样式 */
+    .automation-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+      border: 2px dashed #667eea;
+    }
+
+    .automation-card:hover {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <!-- 顶部标题栏 -->
+    <div class="header-bar">
+      <div class="header-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+        <span>AutoBrowser</span>
+      </div>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span>CDP</span>
+      </div>
+    </div>
+
+    <!-- 标签页区域 -->
+    <el-tabs v-model="activeTab" type="border-card">
+      <!-- 标准操作 -->
+      <el-tab-pane label="标准操作" name="standard">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            标准操作
+          </span>
+        </template>
+        <div class="operations-grid">
+          <div v-for="op in standardOperations" :key="op.id" class="operation-card">
+            <div class="operation-header">
+              <div class="operation-icon" v-html="op.icon"></div>
+              <div class="operation-title">{{ op.name }}</div>
+            </div>
+            <div class="operation-description">{{ op.description }}</div>
+            <div v-if="op.inputs && op.inputs.length > 0" class="operation-inputs">
+              <el-input v-for="input in op.inputs" :key="input.model" v-model="op.data[input.model]"
+                :placeholder="input.placeholder" size="small" clearable></el-input>
+            </div>
+            <el-button class="operation-button" size="small" @click="executeOperation(op)">
+              执行操作
+            </el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <!-- 增强操作 -->
+      <el-tab-pane label="增强操作" name="enhanced">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            增强操作
+          </span>
+        </template>
+        <div class="operations-grid">
+          <div v-for="op in enhancedOperations" :key="op.id" class="operation-card">
+            <div class="operation-header">
+              <div class="operation-icon" v-html="op.icon"></div>
+              <div class="operation-title">{{ op.name }}</div>
+            </div>
+            <div class="operation-description">{{ op.description }}</div>
+            <div v-if="op.inputs && op.inputs.length > 0" class="operation-inputs">
+              <el-input v-for="input in op.inputs" :key="input.model" v-model="op.data[input.model]"
+                :placeholder="input.placeholder" size="small" clearable></el-input>
+            </div>
+            <el-button class="operation-button" size="small" @click="executeOperation(op)">
+              执行操作
+            </el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <!-- 自动化脚本 -->
+      <el-tab-pane label="自动化脚本" name="automation">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="10 8 16 12 10 16 10 8"></polygon>
+            </svg>
+            自动化脚本
+          </span>
+        </template>
+        <div class="operations-grid">
+          <div v-for="op in automationOperations" :key="op.id" class="operation-card automation-card"
+            :class="op.category">
+            <div class="operation-header">
+              <div class="operation-icon" v-html="op.icon"></div>
+              <div class="operation-title">{{ op.name }}</div>
+            </div>
+            <div class="operation-description">{{ op.description }}</div>
+            <div v-if="op.inputs && op.inputs.length > 0" class="operation-inputs">
+              <el-input v-for="input in op.inputs" :key="input.model" v-model="op.data[input.model]"
+                :placeholder="input.placeholder" size="small" clearable></el-input>
+            </div>
+            <el-button class="operation-button" size="small" @click="executeOperation(op)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              执行脚本
+            </el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <!-- 视图管理 -->
+      <el-tab-pane label="视图管理" name="views">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+            视图管理
+            <el-badge :value="viewCount" :max="99" v-if="viewCount > 0" style="transform: scale(0.85);"></el-badge>
+          </span>
+        </template>
+        <div style="padding: 8px; height: 100%; overflow-y: auto;">
+          <!-- 当前视图信息 -->
+          <div class="operation-card"
+            style="margin-bottom: 8px; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-color: #81c784;">
+            <div class="operation-header">
+              <div class="operation-icon" style="background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="operation-title">当前活动视图</div>
+            </div>
+            <div class="operation-description">
+              <div v-if="currentViewId" style="font-family: monospace; font-size: 11px; color: #303133;">
+                ID: {{ currentViewId }}
+              </div>
+              <div v-else style="color: #909399;">暂无活动视图</div>
+            </div>
+            <el-button class="operation-button" size="small" @click="refreshViewInfo">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+              </svg>
+              刷新信息
+            </el-button>
+          </div>
+          <div class="operations-grid">
+            <div v-for="op in viewOperations" :key="op.id" class="operation-card">
+              <div class="operation-header">
+                <div class="operation-icon" v-html="op.icon"></div>
+                <div class="operation-title">{{ op.name }}</div>
+              </div>
+              <div class="operation-description">{{ op.description }}</div>
+              <div v-if="op.inputs && op.inputs.length > 0" class="operation-inputs">
+                <el-input v-for="input in op.inputs" :key="input.model" v-model="op.data[input.model]"
+                  :placeholder="input.placeholder" size="small" clearable></el-input>
+              </div>
+              <el-button class="operation-button" size="small" @click="executeViewOperation(op)">
+                执行操作
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <!-- 日志 -->
+      <el-tab-pane label="日志" name="logs">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            日志
+            <el-badge :value="logs.length" :max="99" v-if="logs.length > 0" style="transform: scale(0.85);"></el-badge>
+          </span>
+        </template>
+        <div class="logs-container">
+          <div class="logs-header">
+            <div class="logs-title">操作日志</div>
+            <el-button size="small" @click="clearLogs">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              清空日志
+            </el-button>
+          </div>
+          <div class="logs-content" ref="logsContent">
+            <div v-for="(log, index) in logs" :key="index" :class="['log-item', log.level]">
+              <span :class="['log-level', log.level]">[{{ log.level.toUpperCase() }}]</span>
+              <span class="log-message">{{ log.message }}</span>
+            </div>
+            <div v-if="logs.length === 0" style="text-align: center; color: #909399; padding: 40px;">
+              暂无日志记录
+            </div>
+          </div>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, watch, nextTick } = Vue;
+
+    createApp({
+      setup() {
+        const activeTab = ref('standard');
+        const logs = reactive([]);
+        const logsContent = ref(null);
+        const currentViewId = ref(null);
+        const viewCount = ref(0);
+
+        // 获取当前活动视图 ID 的辅助函数
+        const getCurrentViewId = async () => {
+          if (currentViewId.value) return currentViewId.value;
+
+          // 首先尝试获取活动视图
+          try {
+            const activeResult = await window.browserAPI.invoke('views:getActive');
+            if (activeResult.success && activeResult.data && activeResult.data.id) {
+              currentViewId.value = activeResult.data.id;
+              return currentViewId.value;
+            }
+          } catch (error) {
+            console.warn('获取活动视图失败:', error);
+          }
+
+          // 如果没有活动视图，尝试获取所有视图，使用第一个
+          try {
+            const allResult = await window.browserAPI.invoke('views:getAll');
+            if (allResult.success && allResult.data && allResult.data.views && allResult.data.views.length > 0) {
+              currentViewId.value = allResult.data.views[0].id;
+              return currentViewId.value;
+            }
+          } catch (error) {
+            console.warn('获取所有视图失败:', error);
+          }
+
+          // 如果没有视图，创建一个
+          try {
+            const createResult = await window.browserAPI.invoke('views:create', {
+              title: '默认视图',
+              url: 'about:blank',
+            });
+            if (createResult.success && createResult.data) {
+              currentViewId.value = createResult.data.viewId;
+              return currentViewId.value;
+            }
+          } catch (error) {
+            console.error('创建视图失败:', error);
+          }
+
+          throw new Error('无法获取或创建视图');
+        };
+
+        // 添加日志
+        const addLog = (level, message) => {
+          logs.push({ level, message, time: new Date().toLocaleTimeString() });
+          // 自动滚动到底部
+          nextTick(() => {
+            if (logsContent.value) {
+              logsContent.value.scrollTop = logsContent.value.scrollHeight;
+            }
+          });
+        };
+
+        // 清空日志
+        const clearLogs = () => {
+          logs.length = 0;
+        };
+
+        // 刷新视图信息
+        const refreshViewInfo = async () => {
+          try {
+            // 获取活动视图
+            const activeResult = await window.browserAPI.invoke('views:getActive');
+            if (activeResult.success && activeResult.data) {
+              currentViewId.value = activeResult.data.id;
+            }
+            // 获取所有视图
+            const allResult = await window.browserAPI.invoke('views:getAll');
+            if (allResult.success && allResult.data) {
+              viewCount.value = allResult.data.views?.length || 0;
+            }
+            addLog('success', '视图信息已刷新');
+          } catch (error) {
+            addLog('error', `刷新视图信息失败: ${error.message}`);
+          }
+        };
+
+        // 视图操作
+        const viewOperations = reactive([
+          {
+            id: 'createView',
+            name: '创建视图',
+            description: '创建一个新的浏览器视图',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
+            action: 'views:create',
+            inputs: [
+              { model: 'title', placeholder: '视图标题（可选）' },
+              { model: 'url', placeholder: '初始 URL（可选）' }
+            ],
+            data: { title: '', url: 'about:blank' }
+          },
+          {
+            id: 'removeView',
+            name: '移除视图',
+            description: '移除指定的视图',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
+            action: 'views:remove',
+            inputs: [{ model: 'viewId', placeholder: '视图 ID' }],
+            data: { viewId: '' }
+          },
+          {
+            id: 'getAllViews',
+            name: '获取所有视图',
+            description: '获取所有已创建的视图列表',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>',
+            action: 'views:getAll',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'loadURL',
+            name: '加载 URL',
+            description: '在指定视图中加载 URL',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+            action: 'views:loadURL',
+            inputs: [
+              { model: 'viewId', placeholder: '视图 ID' },
+              { model: 'url', placeholder: 'URL 地址' }
+            ],
+            data: { viewId: '', url: 'https://www.baidu.com' }
+          },
+          {
+            id: 'reloadView',
+            name: '刷新视图',
+            description: '刷新指定视图的页面',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path></svg>',
+            action: 'views:reload',
+            inputs: [{ model: 'viewId', placeholder: '视图 ID' }],
+            data: { viewId: '' }
+          },
+          {
+            id: 'toggleDevTools',
+            name: '切换开发工具',
+            description: '显示/隐藏指定视图的开发工具',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+            action: 'views:toggleDevTools',
+            inputs: [{ model: 'viewId', placeholder: '视图 ID' }],
+            data: { viewId: '' }
+          },
+          {
+            id: 'setActive',
+            name: '设置活动视图',
+            description: '设置指定的视图为活动视图',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            action: 'views:setActive',
+            inputs: [{ model: 'viewId', placeholder: '视图 ID' }],
+            data: { viewId: '' }
+          },
+          {
+            id: 'getActive',
+            name: '获取活动视图',
+            description: '获取当前活动视图的 ID',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+            action: 'views:getActive',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'setVisible',
+            name: '设置视图显示',
+            description: '显示或隐藏指定的视图',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+            action: 'views:setVisible',
+            inputs: [
+              { model: 'viewId', placeholder: '视图 ID' },
+              { model: 'visible', placeholder: '是否显示 (true/false)' }
+            ],
+            data: { viewId: '', visible: 'true' }
+          },
+          {
+            id: 'updateBounds',
+            name: '更新视图位置',
+            description: '更新视图的位置和大小',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8" cy="8" r="1"></circle><path d="M21 15l-3.086-3.086a2 2 0 00-2.828 0L6 21"></path></svg>',
+            action: 'views:updateBounds',
+            inputs: [
+              { model: 'viewId', placeholder: '视图 ID' },
+              { model: 'x', placeholder: 'X 坐标' },
+              { model: 'y', placeholder: 'Y 坐标' },
+              { model: 'width', placeholder: '宽度' },
+              { model: 'height', placeholder: '高度' }
+            ],
+            data: { viewId: '', x: '0', y: '0', width: '800', height: '600' }
+          }
+        ]);
+
+        // 执行视图操作
+        const executeViewOperation = async (op) => {
+          addLog('info', `开始执行：${op.name}`);
+          try {
+            let args = [];
+            if (op.inputs && op.inputs.length > 0) {
+              args = op.inputs.map(input => {
+                let value = op.data[input.model];
+                // 处理布尔值
+                if (value === 'true') return true;
+                if (value === 'false') return false;
+                // 处理数字
+                if (!isNaN(Number(value)) && value !== '' && input.model !== 'viewId' && input.model !== 'url' && input.model !== 'title' && input.model !== 'visible') {
+                  return Number(value);
+                }
+                return value;
+              });
+            }
+
+            let result;
+
+            if (op.action === 'views:create') {
+              const options = {};
+              if (op.data.title) options.title = op.data.title;
+              if (op.data.url) options.url = op.data.url;
+              result = await window.browserAPI.invoke('views:create', options);
+              if (result.success && result.data) {
+                currentViewId.value = result.data.viewId;
+                addLog('success', `视图创建成功: ${result.data.viewId}`);
+                await refreshViewInfo();
+              }
+            } else if (op.action === 'views:remove') {
+              result = await window.browserAPI.invoke('views:remove', op.data.viewId);
+              if (result.success) {
+                addLog('success', `视图已移除: ${op.data.viewId}`);
+                if (currentViewId.value === op.data.viewId) {
+                  currentViewId.value = null;
+                }
+                await refreshViewInfo();
+              }
+            } else if (op.action === 'views:getAll') {
+              result = await window.browserAPI.invoke('views:getAll');
+              if (result.success && result.data) {
+                const views = result.data.views || [];
+                viewCount.value = views.length;
+                addLog('success', `共有 ${views.length} 个视图`);
+                views.forEach(view => {
+                  addLog('info', `  - ${view.id}: ${view.title || '无标题'}`);
+                });
+              }
+            } else if (op.action === 'views:loadURL') {
+              result = await window.browserAPI.invoke('views:loadURL', op.data.viewId, op.data.url);
+              if (result.success) {
+                addLog('success', `已加载: ${op.data.url}`);
+              }
+            } else if (op.action === 'views:reload') {
+              result = await window.browserAPI.invoke('views:reload', op.data.viewId);
+              if (result.success) {
+                addLog('success', `视图已刷新`);
+              }
+            } else if (op.action === 'views:toggleDevTools') {
+              result = await window.browserAPI.invoke('views:toggleDevTools', op.data.viewId);
+              if (result.success) {
+                addLog('success', `开发工具已切换`);
+              }
+            } else if (op.action === 'views:setActive') {
+              result = await window.browserAPI.invoke('views:setActive', op.data.viewId);
+              if (result.success) {
+                currentViewId.value = op.data.viewId;
+                addLog('success', `已设置活动视图: ${op.data.viewId}`);
+              }
+            } else if (op.action === 'views:getActive') {
+              result = await window.browserAPI.invoke('views:getActive');
+              if (result.success && result.data) {
+                currentViewId.value = result.data.id;
+                addLog('success', `活动视图: ${result.data.id || '无'}`);
+              }
+            } else if (op.action === 'views:setVisible') {
+              const visible = op.data.visible === 'true' || op.data.visible === true;
+              result = await window.browserAPI.invoke('views:setVisible', op.data.viewId, visible);
+              if (result.success) {
+                addLog('success', `视图已${visible ? '显示' : '隐藏'}`);
+              }
+            } else if (op.action === 'views:updateBounds') {
+              const bounds = {
+                x: parseInt(op.data.x) || 0,
+                y: parseInt(op.data.y) || 0,
+                width: parseInt(op.data.width) || 800,
+                height: parseInt(op.data.height) || 600
+              };
+              result = await window.browserAPI.invoke('views:updateBounds', op.data.viewId, bounds);
+              if (result.success) {
+                addLog('success', `视图位置已更新`);
+              }
+            } else {
+              result = await window.browserAPI.invoke(op.action, ...args);
+            }
+
+            if (result && result.success !== false) {
+              addLog('success', `${op.name} 执行成功`);
+              if (result && typeof result === 'object') {
+                console.log('操作结果:', result);
+              }
+            } else {
+              addLog('error', `${op.name} 执行失败: ${result.message || '未知错误'}`);
+            }
+          } catch (error) {
+            addLog('error', `${op.name} 执行失败: ${error.message}`);
+            console.error('操作错误:', error);
+          }
+        };
+
+        // 标准操作
+        const standardOperations = reactive([
+          {
+            id: 'navigate',
+            name: '页面导航',
+            description: '在浏览器中打开指定的 URL 地址',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+            action: 'navigate',
+            inputs: [{ model: 'url', placeholder: '请输入网页 URL' }],
+            data: { url: 'https://www.baidu.com' }
+          },
+          {
+            id: 'click',
+            name: '点击元素',
+            description: '使用 CSS 选择器定位并点击页面元素',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>',
+            action: 'click',
+            inputs: [{ model: 'selector', placeholder: '请输入 CSS 选择器' }],
+            data: { selector: 'button' }
+          },
+          {
+            id: 'type',
+            name: '输入文本',
+            description: '向指定的输入框中输入文本内容',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>',
+            action: 'type',
+            inputs: [
+              { model: 'selector', placeholder: '请输入 CSS 选择器' },
+              { model: 'text', placeholder: '请输入文本内容' }
+            ],
+            data: { selector: 'input', text: 'Hello World' }
+          },
+          {
+            id: 'waitForSelector',
+            name: '等待元素',
+            description: '等待指定元素出现在页面上',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+            action: 'waitForSelector',
+            inputs: [
+              { model: 'selector', placeholder: '请输入 CSS 选择器' },
+              { model: 'timeout', placeholder: '超时时间 (毫秒)' }
+            ],
+            data: { selector: 'div', timeout: '5000' }
+          },
+          {
+            id: 'evaluate',
+            name: '执行脚本',
+            description: '在页面上下文中执行 JavaScript 代码',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+            action: 'evaluate',
+            inputs: [{ model: 'script', placeholder: '请输入 JavaScript 代码' }],
+            data: { script: 'document.title' }
+          },
+          {
+            id: 'getInfo',
+            name: '获取页面信息',
+            description: '获取当前页面的 URL、标题等基本信息',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+            action: 'getInfo',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'goBack',
+            name: '后退',
+            description: '返回到上一个访问的页面',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>',
+            action: 'goBack',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'goForward',
+            name: '前进',
+            description: '前进到下一个页面',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
+            action: 'goForward',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'reload',
+            name: '刷新页面',
+            description: '重新加载当前页面',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path></svg>',
+            action: 'reload',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'screenshot',
+            name: '截图',
+            description: '对当前页面进行截图',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>',
+            action: 'screenshot',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'getContent',
+            name: '获取页面内容',
+            description: '获取当前页面的完整 HTML 代码',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+            action: 'getContent',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'scroll',
+            name: '滚动页面',
+            description: '滚动页面到指定的坐标位置',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>',
+            action: 'scroll',
+            inputs: [
+              { model: 'x', placeholder: 'X 坐标' },
+              { model: 'y', placeholder: 'Y 坐标' }
+            ],
+            data: { x: '0', y: '500' }
+          },
+        ]);
+
+        // 增强操作
+        const enhancedOperations = reactive([
+          {
+            id: 'enhancedClick',
+            name: '智能点击',
+            description: '支持坐标点击、等待导航等高级特性',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>',
+            action: 'enhancedClick',
+            inputs: [
+              { model: 'selector', placeholder: 'CSS 选择器（可选）' },
+              { model: 'x', placeholder: 'X 坐标（可选）' },
+              { model: 'y', placeholder: 'Y 坐标（可选）' }
+            ],
+            data: { selector: '', x: '', y: '' }
+          },
+          {
+            id: 'fillForm',
+            name: '智能表单填充',
+            description: '自动识别并填充各类表单元素',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+            action: 'fillForm',
+            inputs: [
+              { model: 'selector', placeholder: 'CSS 选择器' },
+              { model: 'value', placeholder: '填充内容' }
+            ],
+            data: { selector: 'input', value: '测试内容' }
+          },
+          {
+            id: 'uploadFile',
+            name: '文件上传',
+            description: '上传文件到指定的文件输入框',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>',
+            action: 'uploadFile',
+            inputs: [
+              { model: 'selector', placeholder: '文件输入框选择器' },
+              { model: 'filePath', placeholder: '文件路径（完整路径）' }
+            ],
+            data: { selector: 'input[type="file"]', filePath: 'C:/test/image.png' }
+          },
+          {
+            id: 'simulateKeyboard',
+            name: '键盘模拟',
+            description: '模拟真实的键盘按键和组合键',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6.01" y2="8"></line><line x1="10" y1="8" x2="10.01" y2="8"></line><line x1="14" y1="8" x2="14.01" y2="8"></line><line x1="18" y1="8" x2="18.01" y2="8"></line><line x1="8" y1="12" x2="16" y2="12"></line><line x1="8" y1="16" x2="16" y2="16"></line></svg>',
+            action: 'simulateKeyboard',
+            inputs: [
+              { model: 'keys', placeholder: '按键序列（如: H,e,l,l,o 或 Ctrl+A）' },
+              { model: 'selector', placeholder: '目标元素（可选）' }
+            ],
+            data: { keys: 'Hello World', selector: '' }
+          },
+          {
+            id: 'getInteractiveElements',
+            name: '获取交互元素',
+            description: '自动识别页面上所有可交互元素',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+            action: 'getInteractiveElements',
+            inputs: [
+              { model: 'types', type: 'array', placeholder: '元素类型（如: button,link,input）' },
+              { model: 'textQuery', placeholder: '文本查询（可选）' },
+              { model: 'includeCoordinates', type: 'boolean', placeholder: '包含坐标（true/false，默认true）' },
+              { model: 'strictVisibility', type: 'boolean', placeholder: '严格可见性检查（true/false，默认true）' }
+            ],
+            data: { types: 'button,link', textQuery: '', includeCoordinates: 'true', strictVisibility: 'true' },
+            paramMode: 'options' // 标记为 options 模式，所有参数构建为 options 对象
+          },
+          {
+            id: 'findElementsByText',
+            name: '文本查找元素',
+            description: '通过文本内容查找页面元素',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>',
+            action: 'findElementsByText',
+            inputs: [
+              { model: 'textQuery', placeholder: '搜索文本' },
+              { model: 'types', type: 'array', placeholder: '元素类型（可选）' },
+              { model: 'includeCoordinates', type: 'boolean', placeholder: '包含坐标（true/false，默认true）' },
+              { model: 'strictVisibility', type: 'boolean', placeholder: '严格可见性检查（true/false，默认true）' }
+            ],
+            data: { textQuery: '提交', types: '', includeCoordinates: 'true', strictVisibility: 'true' },
+            paramMode: 'textQuery+options' // 标记为 textQuery+options 模式，textQuery 作为第一个参数，其他构建为 options
+          },
+          {
+            id: 'sendNetworkRequest',
+            name: '网络请求',
+            description: '在页面上下文中发送 HTTP 请求',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"></path></svg>',
+            action: 'sendNetworkRequest',
+            inputs: [
+              { model: 'url', placeholder: 'URL' },
+              { model: 'method', placeholder: '请求方法 (GET/POST)' }
+            ],
+            data: { url: 'https://api.example.com/data', method: 'GET' }
+          },
+          {
+            id: 'getTextContent',
+            name: '获取文本内容',
+            description: '使用 Readability 提取页面主要文本内容',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+            action: 'getTextContent',
+            inputs: [
+              { model: 'selector', placeholder: 'CSS 选择器（可选，不填则提取整个页面）' }
+            ],
+            data: { selector: '' }
+          },
+          {
+            id: 'getHtmlContent',
+            name: '获取 HTML 内容',
+            description: '获取页面或指定元素的清理后的 HTML',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+            action: 'getHtmlContent',
+            inputs: [
+              { model: 'selector', placeholder: 'CSS 选择器（可选）' }
+            ],
+            data: { selector: '' }
+          },
+          {
+            id: 'extractPageMetadata',
+            name: '提取页面元数据',
+            description: '提取标题、作者、描述等元数据信息',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+            action: 'extractPageMetadata',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'startWebRequestCapture',
+            name: 'WebRequest 捕获',
+            description: '开始 WebRequest 捕获（不含响应体，性能更好）',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg>',
+            action: 'startWebRequestCapture',
+            inputs: [
+              { model: 'maxTime', placeholder: '最大捕获时间（毫秒）' },
+              { model: 'inactivityTime', placeholder: '无活动超时（毫秒）' }
+            ],
+            data: { maxTime: '180000', inactivityTime: '60000' }
+          },
+          {
+            id: 'stopWebRequestCapture',
+            name: '停止 WebRequest',
+            description: '停止 WebRequest 捕获并返回请求（无响应体）',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6"></rect></svg>',
+            action: 'stopWebRequestCapture',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'startDebuggerCapture',
+            name: 'Debugger 捕获',
+            description: '开始 Debugger 捕获（含完整响应体）',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'startDebuggerCapture',
+            inputs: [
+              { model: 'maxTime', placeholder: '最大捕获时间（毫秒）' },
+              { model: 'inactivityTime', placeholder: '无活动超时（毫秒）' }
+            ],
+            data: { maxTime: '180000', inactivityTime: '60000' }
+          },
+          {
+            id: 'stopDebuggerCapture',
+            name: '停止 Debugger',
+            description: '停止 Debugger 捕获并返回请求（含响应体）',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6"></rect></svg>',
+            action: 'stopDebuggerCapture',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'sendNetworkRequestAdvanced',
+            name: '高级网络请求',
+            description: '使用网络监控器发送完整的 HTTP 请求',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>',
+            action: 'sendNetworkRequestAdvanced',
+            inputs: [
+              { model: 'url', placeholder: 'URL' },
+              { model: 'method', placeholder: '请求方法' }
+            ],
+            data: { url: 'https://jsonplaceholder.typicode.com/posts/1', method: 'GET' }
+          },
+          {
+            id: 'getNetworkStatus',
+            name: '获取网络状态',
+            description: '查看当前网络监控器的运行状态',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+            action: 'getNetworkStatus',
+            inputs: [],
+            data: {}
+          }
+        ]);
+
+        // 自动化脚本
+        const automationOperations = reactive([
+          // === 标准操作测试 ===
+          {
+            id: 'test_navigate',
+            name: '测试: 页面导航',
+            description: '导航到 test.html 页面',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_navigate',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_click_button',
+            name: '测试: 点击按钮',
+            description: '依次点击 test.html 上的所有按钮',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_click_button',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_type_text',
+            name: '测试: 文本输入',
+            description: '测试所有输入框的文本输入功能',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_type_text',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_wait_selector',
+            name: '测试: 等待元素',
+            description: '等待页面关键元素加载完成',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_wait_selector',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_evaluate',
+            name: '测试: 执行脚本',
+            description: '执行各种 JavaScript 代码测试',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_evaluate',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_page_info',
+            name: '测试: 获取页面信息',
+            description: '获取并验证页面的各项信息',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_page_info',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_scroll',
+            name: '测试: 页面滚动',
+            description: '测试页面滚动到不同位置',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_scroll',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_get_content',
+            name: '测试: 获取页面内容',
+            description: '获取并验证页面 HTML 内容',
+            category: 'standard-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_get_content',
+            inputs: [],
+            data: {}
+          },
+
+          // === 增强操作测试 ===
+          {
+            id: 'test_enhanced_click',
+            name: '测试: 智能点击',
+            description: '测试增强点击功能（坐标、等待导航）',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+            action: 'test_enhanced_click',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_fill_form',
+            name: '测试: 智能表单填充',
+            category: 'enhanced-test',
+            description: '测试所有类型的表单元素填充',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+            action: 'test_fill_form',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_keyboard',
+            name: '测试: 键盘模拟',
+            description: '测试键盘输入和组合键',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+            action: 'test_keyboard',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_interactive_elements',
+            name: '测试: 获取交互元素',
+            description: '获取页面上所有可交互元素',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+            action: 'test_interactive_elements',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_find_by_text',
+            name: '测试: 文本查找元素',
+            description: '通过文本内容查找并操作元素',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+            action: 'test_find_by_text',
+            inputs: [],
+            data: {}
+          },
+
+          // === 综合测试 ===
+          {
+            id: 'test_complete_form',
+            name: '综合: 完整表单流程',
+            description: '填写并提交完整的表单，包含所有字段',
+            category: 'combined-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            action: 'test_complete_form',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_search_flow',
+            name: '综合: 搜索功能测试',
+            description: '测试搜索输入和执行流程',
+            category: 'combined-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            action: 'test_search_flow',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_list_operations',
+            name: '综合: 列表操作测试',
+            description: '测试列表的添加和删除功能',
+            category: 'combined-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            action: 'test_list_operations',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_all_standard',
+            name: '全部: 标准操作完整测试',
+            description: '执行所有标准操作的完整测试流程',
+            category: 'combined-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+            action: 'test_all_standard',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_all_enhanced',
+            name: '全部: 增强操作完整测试',
+            description: '执行所有增强操作的完整测试流程',
+            category: 'combined-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+            action: 'test_all_enhanced',
+            inputs: [],
+            data: {}
+          },
+
+          // === 内容提取测试 ===
+          {
+            id: 'test_content_extraction',
+            name: '测试: 内容提取',
+            description: '测试 Readability 文本和 HTML 提取',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+            action: 'test_content_extraction',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_metadata_extraction',
+            name: '测试: 元数据提取',
+            description: '提取页面标题、作者等元数据',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+            action: 'test_metadata_extraction',
+            inputs: [],
+            data: {}
+          },
+
+          // === 网络监控测试 ===
+          {
+            id: 'test_webrequest_capture',
+            name: '测试: WebRequest 捕获',
+            description: '测试 WebRequest 网络捕获（不含响应体）',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg>',
+            action: 'test_webrequest_capture',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_debugger_capture',
+            name: '测试: Debugger 捕获',
+            description: '测试 Debugger 网络捕获（含响应体）',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+            action: 'test_debugger_capture',
+            inputs: [],
+            data: {}
+          },
+          {
+            id: 'test_network_request',
+            name: '测试: 网络请求',
+            description: '测试高级网络请求发送功能',
+            category: 'enhanced-test',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>',
+            action: 'test_network_request',
+            inputs: [],
+            data: {}
+          }
+        ]);
+
+        // 获取 test.html 路径
+        const getTestPath = () => {
+          return `file://${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'))}/test.html`;
+        };
+
+        // 等待函数
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 执行操作
+        const executeOperation = async (op) => {
+          addLog('info', `开始执行：${op.name}`);
+          try {
+            let args = [];
+            if (op.inputs && op.inputs.length > 0) {
+              args = op.inputs.map(input => {
+                let value = op.data[input.model];
+                if (value === 'true') return true;
+                if (value === 'false') return false;
+                if (!isNaN(Number(value)) && value !== '' && input.model !== 'selector' && input.model !== 'keys' && input.model !== 'url' && input.model !== 'script' && input.model !== 'textQuery' && input.model !== 'types') {
+                  return Number(value);
+                }
+                return value;
+              });
+            }
+
+            let result;
+
+            // === 标准操作测试 ===
+            if (op.action === 'test_navigate') {
+              const testPath = getTestPath();
+              const viewId = await getCurrentViewId();
+              addLog('info', `导航到测试页面: ${testPath}`);
+              await window.browserAPI.invoke('browser:navigate', viewId, testPath);
+              await wait(500);
+              const infoResult = await window.browserAPI.invoke('browser:getInfo', viewId);
+              const info = infoResult.success ? infoResult.data : null;
+              addLog('success', `页面标题: ${info?.title || '未获取'}`);
+              result = { success: true, info };
+
+            } else if (op.action === 'test_click_button') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试所有按钮点击');
+              for (let i = 1; i <= 6; i++) {
+                addLog('info', `点击按钮 ${i}`);
+                await window.browserAPI.invoke('automation:click', viewId, `#btn-${i}`);
+                await wait(300);
+              }
+              result = { success: true, buttonsClicked: 6 };
+
+            } else if (op.action === 'test_type_text') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试文本输入');
+              await window.browserAPI.invoke('automation:type', viewId, '#username', '测试用户名');
+              await wait(200);
+              await window.browserAPI.invoke('automation:type', viewId, '#password', 'test123456');
+              await wait(200);
+              await window.browserAPI.invoke('automation:type', viewId, '#email', 'test@example.com');
+              await wait(200);
+              await window.browserAPI.invoke('automation:type', viewId, '#searchInput', '测试搜索关键词');
+              addLog('success', '所有输入框填写完成');
+              result = { success: true };
+
+            } else if (op.action === 'test_wait_selector') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试等待元素');
+              await window.browserAPI.invoke('automation:waitForSelector', viewId, '#testForm', 5000);
+              addLog('success', '表单元素已就绪');
+              await window.browserAPI.invoke('automation:waitForSelector', viewId, '#submitBtn', 5000);
+              addLog('success', '提交按钮已就绪');
+              result = { success: true };
+
+            } else if (op.action === 'test_evaluate') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试执行脚本');
+
+              // 测试 1: 获取页面标题
+              const titleResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.title');
+              const title = titleResult.success ? titleResult.data?.result : null;
+              addLog('success', `✓ 执行: document.title`);
+              addLog('info', `  结果: "${title}"`);
+
+              // 测试 2: 计算元素数量
+              const inputCountResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelectorAll("input").length');
+              const inputCount = inputCountResult.success ? inputCountResult.data?.result : 0;
+              addLog('success', `✓ 执行: document.querySelectorAll("input").length`);
+              addLog('info', `  结果: ${inputCount} 个输入框`);
+
+              // 测试 3: 获取按钮数量
+              const buttonCountResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelectorAll("button").length');
+              const buttonCount = buttonCountResult.success ? buttonCountResult.data?.result : 0;
+              addLog('success', `✓ 执行: document.querySelectorAll("button").length`);
+              addLog('info', `  结果: ${buttonCount} 个按钮`);
+
+              // 测试 4: 执行复杂表达式
+              const pageInfoResult = await window.browserAPI.invoke('content:evaluate', viewId, `({
+                url: window.location.href,
+                domain: window.location.hostname,
+                protocol: window.location.protocol,
+                width: window.innerWidth,
+                height: window.innerHeight
+              })`);
+              const pageInfo = pageInfoResult.success ? pageInfoResult.data?.result : null;
+              addLog('success', `✓ 执行: 获取页面详细信息对象`);
+              if (pageInfo) {
+                addLog('info', `  域名: ${pageInfo.domain}`);
+                addLog('info', `  窗口尺寸: ${pageInfo.width}x${pageInfo.height}`);
+              }
+
+              result = { success: true, title, inputCount, buttonCount, pageInfo };
+
+            } else if (op.action === 'test_page_info') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '获取页面信息');
+              const infoResult = await window.browserAPI.invoke('browser:getInfo', viewId);
+              const info = infoResult.success ? infoResult.data : null;
+              addLog('success', `URL: ${info?.url || '未获取到'}`);
+              addLog('success', `标题: ${info?.title || '未获取到'}`);
+              addLog('success', `可后退: ${info?.canGoBack !== undefined ? info.canGoBack : '未知'}`);
+              addLog('success', `可前进: ${info?.canGoForward !== undefined ? info.canGoForward : '未知'}`);
+              console.log('页面信息详情:', info);
+              result = { success: true, info };
+
+            } else if (op.action === 'test_scroll') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试页面滚动');
+              await window.browserAPI.invoke('automation:scroll', viewId, 0, 500);
+              await wait(500);
+              addLog('info', '滚动到 500px');
+              await window.browserAPI.invoke('automation:scroll', viewId, 0, 1000);
+              await wait(500);
+              addLog('info', '滚动到 1000px');
+              await window.browserAPI.invoke('automation:scroll', viewId, 0, 0);
+              addLog('success', '滚动回顶部');
+              result = { success: true };
+
+            } else if (op.action === 'test_get_content') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '获取页面内容');
+              const contentResult = await window.browserAPI.invoke('content:getPageContent', viewId);
+              const html = contentResult.success ? contentResult.data?.html : null;
+              const htmlLength = typeof html === 'string' ? html.length : 0;
+              addLog('success', `HTML 长度: ${htmlLength} 字符`);
+              const hasForm = typeof html === 'string' && html.includes('testForm');
+              addLog('info', `包含表单: ${hasForm}`);
+              result = { success: true, htmlLength, hasForm };
+
+              // === 增强操作测试 ===
+            } else if (op.action === 'test_enhanced_click') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试智能点击');
+              await window.browserAPI.invoke('automation:enhancedClick', viewId, '#btn-1', {});
+              await wait(300);
+              addLog('success', '选择器点击成功');
+              result = { success: true };
+
+            } else if (op.action === 'test_fill_form') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试智能表单填充');
+              await window.browserAPI.invoke('automation:fillForm', viewId, '#username', '智能填充用户');
+              await wait(200);
+              await window.browserAPI.invoke('automation:fillForm', viewId, '#password', 'smart123');
+              await wait(200);
+              await window.browserAPI.invoke('automation:fillForm', viewId, '#email', 'smart@test.com');
+              await wait(200);
+              await window.browserAPI.invoke('automation:fillForm', viewId, '#bio', '这是智能填充的个人简介\n支持多行文本');
+              await wait(200);
+              const citySetResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelector("#city").value = "shanghai"; true');
+              addLog('success', '所有表单元素填充完成');
+              result = { success: true };
+
+            } else if (op.action === 'test_keyboard') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试键盘模拟');
+              await window.browserAPI.invoke('automation:simulateKeyboard', viewId, 'H,e,l,l,o', '#searchInput', 50);
+              await wait(500);
+              addLog('success', '普通键盘输入测试完成');
+              await window.browserAPI.invoke('automation:simulateKeyboard', viewId, 'Ctrl+A', '#searchInput', 100);
+              await wait(200);
+              await window.browserAPI.invoke('automation:simulateKeyboard', viewId, 'Delete', '#searchInput', 100);
+              addLog('success', '组合键测试完成');
+              result = { success: true };
+
+            } else if (op.action === 'test_interactive_elements') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '获取交互元素');
+              const elementsResult = await window.browserAPI.invoke('automation:getInteractiveElements', viewId, { types: ['button', 'link', 'input'] });
+              const elements = elementsResult.success ? elementsResult.data?.elements || [] : [];
+              addLog('success', `找到 ${elements.length} 个交互元素`);
+              const buttons = elements.filter(el => el.type === 'button' || el.tagName === 'BUTTON').length;
+              const inputs = elements.filter(el => el.type === 'input' || el.tagName === 'INPUT').length;
+              addLog('info', `按钮: ${buttons} 个`);
+              addLog('info', `输入框: ${inputs} 个`);
+              console.log('交互元素详情:', elements);
+              result = { success: true, total: elements.length, buttons, inputs };
+
+            } else if (op.action === 'test_find_by_text') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试文本查找');
+              const submitResult = await window.browserAPI.invoke('automation:findElementsByText', viewId, '提交表单', {});
+              const submitElements = submitResult.success ? submitResult.data?.elements || [] : [];
+              addLog('success', `找到"提交表单"相关元素: ${submitElements.length} 个`);
+              const searchResult = await window.browserAPI.invoke('automation:findElementsByText', viewId, '搜索', {});
+              const searchElements = searchResult.success ? searchResult.data?.elements || [] : [];
+              addLog('success', `找到"搜索"相关元素: ${searchElements.length} 个`);
+              result = { success: true, submitElements, searchElements };
+
+              // === 综合测试 ===
+            } else if (op.action === 'test_complete_form') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '执行完整表单流程测试');
+              await window.browserAPI.invoke('automation:type', viewId, '#username', '张三');
+              await wait(200);
+              await window.browserAPI.invoke('automation:type', viewId, '#password', 'pass123456');
+              await wait(200);
+              await window.browserAPI.invoke('automation:type', viewId, '#email', 'zhangsan@example.com');
+              await wait(200);
+              await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelector("#city").value = "beijing"');
+              await wait(200);
+              await window.browserAPI.invoke('automation:click', viewId, 'input[name="gender"][value="male"]');
+              await wait(200);
+              await window.browserAPI.invoke('automation:click', viewId, '#hobby-reading');
+              await wait(200);
+              await window.browserAPI.invoke('automation:click', viewId, '#hobby-music');
+              await wait(200);
+              await window.browserAPI.invoke('automation:type', viewId, '#bio', '我是一名软件工程师，喜欢编程和阅读。');
+              await wait(500);
+              addLog('success', '表单填写完成');
+              await window.browserAPI.invoke('automation:click', viewId, '#submitBtn');
+              addLog('success', '表单提交成功');
+              result = { success: true };
+
+            } else if (op.action === 'test_search_flow') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '执行搜索流程测试');
+              await window.browserAPI.invoke('automation:type', viewId, '#searchInput', 'Electron 自动化测试');
+              await wait(500);
+              await window.browserAPI.invoke('automation:click', viewId, '#searchBtn');
+              await wait(300);
+              const searchResultResponse = await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelector("#searchResult").textContent');
+              const searchResult = searchResultResponse.success ? searchResultResponse.data?.result : null;
+              addLog('success', `搜索结果: ${searchResult}`);
+              result = { success: true, searchResult };
+
+            } else if (op.action === 'test_list_operations') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '执行列表操作测试');
+              const initialCountResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelectorAll(".item").length');
+              const initialCount = initialCountResult.success ? initialCountResult.data?.result : 0;
+              addLog('info', `初始列表项: ${initialCount} 个`);
+              await window.browserAPI.invoke('automation:click', viewId, '#addItemBtn');
+              await wait(300);
+              await window.browserAPI.invoke('automation:click', viewId, '#addItemBtn');
+              await wait(300);
+              const afterAddResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelectorAll(".item").length');
+              const afterAdd = afterAddResult.success ? afterAddResult.data?.result : 0;
+              addLog('success', `添加后列表项: ${afterAdd} 个`);
+              await window.browserAPI.invoke('automation:click', viewId, '.delete-btn');
+              await wait(300);
+              const afterDeleteResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.querySelectorAll(".item").length');
+              const afterDelete = afterDeleteResult.success ? afterDeleteResult.data?.result : 0;
+              addLog('success', `删除后列表项: ${afterDelete} 个`);
+              result = { success: true, initial: initialCount, afterAdd, afterDelete };
+
+            } else if (op.action === 'test_all_standard') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '执行所有标准操作测试');
+              const testPath = getTestPath();
+              await window.browserAPI.invoke('browser:navigate', viewId, testPath);
+              await wait(500);
+              await window.browserAPI.invoke('automation:waitForSelector', viewId, '#testForm', 5000);
+              await window.browserAPI.invoke('automation:type', viewId, '#username', '标准测试');
+              await wait(200);
+              await window.browserAPI.invoke('automation:click', viewId, '#btn-1');
+              await wait(200);
+              const infoResponse = await window.browserAPI.invoke('browser:getInfo', viewId);
+              const info = infoResponse.success ? infoResponse.data : null;
+              await window.browserAPI.invoke('automation:scroll', viewId, 0, 500);
+              await wait(300);
+              const contentResponse = await window.browserAPI.invoke('content:getPageContent', viewId);
+              const html = contentResponse.success ? contentResponse.data?.html : null;
+              const htmlLength = typeof html === 'string' ? html.length : 0;
+              const titleResult = await window.browserAPI.invoke('content:evaluate', viewId, 'document.title');
+              const title = titleResult.success ? titleResult.data?.result : null;
+              await window.browserAPI.invoke('browser:reload', viewId);
+              await wait(1000);
+              addLog('success', '所有标准操作测试完成');
+              result = { success: true, info, htmlLength, title };
+
+            } else if (op.action === 'test_all_enhanced') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '执行所有增强操作测试');
+              await window.browserAPI.invoke('automation:fillForm', viewId, '#username', '增强测试');
+              await wait(200);
+              await window.browserAPI.invoke('automation:simulateKeyboard', viewId, 'Test', '#password', 50);
+              await wait(500);
+              const elementsResult = await window.browserAPI.invoke('automation:getInteractiveElements', viewId, { types: ['button'] });
+              const elements = elementsResult.success ? elementsResult.data?.elements || [] : [];
+              addLog('success', `找到 ${elements.length} 个按钮`);
+              const textElementsResult = await window.browserAPI.invoke('automation:findElementsByText', viewId, '提交', {});
+              const textElements = textElementsResult.success ? textElementsResult.data?.elements || [] : [];
+              addLog('success', `找到 ${textElements.length} 个包含"提交"的元素`);
+              await window.browserAPI.invoke('automation:enhancedClick', viewId, '#btn-1', {});
+              await wait(300);
+              addLog('success', '所有增强操作测试完成');
+              result = { success: true, elements: elements.length, textElements: textElements.length };
+
+            } else if (op.action === 'test_content_extraction') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试内容提取功能');
+              // 测试整页文本提取
+              const textResult = await window.browserAPI.invoke('content:getTextContent', viewId);
+              if (textResult.success) {
+                addLog('success', `文本提取成功: ${textResult.data?.textContent?.length || 0} 字符`);
+                if (textResult.data?.article) {
+                  addLog('info', `文章标题: ${textResult.data.article.title || '未知'}`);
+                }
+              }
+              await wait(300);
+              // 测试 HTML 提取
+              const htmlResult = await window.browserAPI.invoke('content:getHtmlContent', viewId, '#testArticle');
+              if (htmlResult.success) {
+                addLog('success', `HTML 提取成功: ${htmlResult.data?.htmlContent?.length || 0} 字符`);
+              }
+              result = { success: true, textLength: textResult.data?.textContent?.length, htmlLength: htmlResult.data?.htmlContent?.length };
+
+            } else if (op.action === 'test_metadata_extraction') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试元数据提取');
+              const metadataResult = await window.browserAPI.invoke('content:extractMetadata', viewId);
+              const metadata = metadataResult.success ? metadataResult.data : null;
+              if (metadata) {
+                addLog('success', `标题: ${metadata.title || '未知'}`);
+                addLog('info', `描述: ${(metadata.description || '').substring(0, 50)}...`);
+                addLog('info', `作者: ${metadata.author || '未知'}`);
+                console.log('完整元数据:', metadata);
+              }
+              result = { success: true, metadata };
+
+            } else if (op.action === 'test_webrequest_capture') {
+              addLog('info', '测试 WebRequest 网络捕获（不含响应体）');
+              const viewId = await getCurrentViewId();
+              // 1. 开始 WebRequest 捕获
+              const startResult = await window.browserAPI.invoke('network:startWebRequestCapture', viewId, {
+                maxCaptureTime: 30000,
+                inactivityTimeout: 10000,
+                includeStatic: false
+              });
+              if (startResult.success) {
+                addLog('success', 'WebRequest 捕获已启动');
+                // 2. 触发一些网络请求
+                await wait(1000);
+                await window.browserAPI.invoke('network:sendRequest', viewId, 'https://jsonplaceholder.typicode.com/posts/1', 'GET', {}, null, 30000);
+                addLog('info', '已触发测试请求');
+                // 3. 等待 3 秒后停止
+                await wait(3000);
+                const stopResult = await window.browserAPI.invoke('network:stopWebRequestCapture', viewId);
+                if (stopResult.success && stopResult.data) {
+                  addLog('success', `WebRequest 捕获完成: ${stopResult.data.requestCount} 个请求`);
+                  addLog('info', `耗时: ${(stopResult.data.totalDurationMs / 1000).toFixed(1)}s`);
+                  addLog('warn', '注意: WebRequest 不包含响应体内容');
+                  console.log('捕获的请求:', stopResult.data.requests);
+                  // 显示前 3 个请求
+                  (stopResult.data.requests || []).slice(0, 3).forEach((req, idx) => {
+                    addLog('info', `  ${idx + 1}. ${req.method} ${req.url} - ${req.statusCode || '未知'}`);
+                  });
+                  result = { success: true, requestCount: stopResult.data.requestCount };
+                }
+              }
+
+            } else if (op.action === 'test_debugger_capture') {
+              addLog('info', '测试 Debugger 网络捕获（含响应体）');
+              const viewId = await getCurrentViewId();
+              // 1. 开始 Debugger 捕获
+              const startResult = await window.browserAPI.invoke('network:startDebuggerCapture', viewId, {
+                maxCaptureTime: 30000,
+                inactivityTimeout: 10000,
+                includeStatic: false
+              });
+              if (startResult.success) {
+                addLog('success', 'Debugger 捕获已启动');
+                // 2. 触发一些网络请求
+                await wait(1000);
+                await window.browserAPI.invoke('network:sendRequest', viewId, 'https://jsonplaceholder.typicode.com/posts/1', 'GET', {}, null, 30000);
+                addLog('info', '已触发测试请求');
+                // 3. 等待 3 秒后停止
+                await wait(3000);
+                const stopResult = await window.browserAPI.invoke('network:stopDebuggerCapture', viewId);
+                if (stopResult.success && stopResult.data) {
+                  addLog('success', `Debugger 捕获完成: ${stopResult.data.requestCount} 个请求`);
+                  addLog('info', `耗时: ${(stopResult.data.totalDurationMs / 1000).toFixed(1)}s`);
+                  addLog('success', '✓ 包含完整响应体内容');
+                  console.log('捕获的请求:', stopResult.data.requests);
+                  // 显示前 3 个请求及其响应体信息
+                  (stopResult.data.requests || []).slice(0, 3).forEach((req, idx) => {
+                    addLog('info', `  ${idx + 1}. ${req.method} ${req.url} - ${req.statusCode || '未知'}`);
+                    if (req.responseBody) {
+                      const bodyPreview = req.responseBody.substring(0, 50);
+                      addLog('info', `     响应体: ${bodyPreview}...`);
+                    }
+                  });
+                  result = { success: true, requestCount: stopResult.data.requestCount };
+                }
+              }
+
+            } else if (op.action === 'test_network_request') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '测试高级网络请求');
+              // GET 请求
+              const getResult = await window.browserAPI.invoke('network:sendRequest', viewId, 'https://jsonplaceholder.typicode.com/posts/1', 'GET', {}, null, 10000);
+              if (getResult.success) {
+                addLog('success', `GET 请求成功: 状态 ${getResult.data?.status || '未知'}`);
+              }
+              await wait(500);
+              // POST 请求
+              const postResult = await window.browserAPI.invoke('network:sendRequest', viewId, 'https://jsonplaceholder.typicode.com/posts', 'POST', { 'Content-Type': 'application/json' }, JSON.stringify({ title: '测试', body: '内容', userId: 1 }), 10000);
+              if (postResult.success) {
+                addLog('success', `POST 请求成功: 状态 ${postResult.data?.status || '未知'}`);
+              }
+              result = { success: true, getStatus: getResult.data?.status, postStatus: postResult.data?.status };
+
+            } else if (op.action === 'getTextContent') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '提取文本内容...');
+              const selector = args[0] || null;
+              result = await window.browserAPI.invoke('content:getTextContent', viewId, selector);
+              if (result.success && result.data) {
+                const textLength = result.data.textContent?.length || 0;
+                addLog('success', `文本长度: ${textLength} 字符`);
+                if (result.data.article) {
+                  addLog('info', `标题: ${result.data.article.title || '未知'}`);
+                  addLog('info', `作者: ${result.data.article.byline || '未知'}`);
+                }
+                console.log('提取的文本:', result.data);
+              }
+
+            } else if (op.action === 'getHtmlContent') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '提取 HTML 内容...');
+              const selector = args[0] || null;
+              result = await window.browserAPI.invoke('content:getHtmlContent', viewId, selector);
+              if (result.success && result.data) {
+                const htmlLength = result.data.htmlContent?.length || 0;
+                addLog('success', `HTML 长度: ${htmlLength} 字符`);
+                console.log('HTML 内容已保存到控制台');
+              }
+
+            } else if (op.action === 'extractPageMetadata') {
+              const viewId = await getCurrentViewId();
+              addLog('info', '提取页面元数据...');
+              result = await window.browserAPI.invoke('content:extractMetadata', viewId);
+              if (result.success && result.data) {
+                addLog('success', `标题: ${result.data.title || '未知'}`);
+                addLog('info', `描述: ${result.data.description?.substring(0, 100) || '未知'}`);
+                addLog('info', `作者: ${result.data.author || '未知'}`);
+                addLog('info', `网站: ${result.data.siteName || '未知'}`);
+                console.log('元数据详情:', result.data);
+              }
+
+            } else if (op.action === 'startNetworkCapture') {
+              addLog('info', '开始网络捕获...');
+              const maxTime = parseInt(args[0]) || 180000;
+              const inactivityTime = parseInt(args[1]) || 60000;
+              result = await window.browserAPI.invoke('network:startDebuggerCapture', {
+                maxCaptureTime: maxTime,
+                inactivityTimeout: inactivityTime,
+                includeStatic: false
+              });
+              if (result.success) {
+                addLog('success', `网络捕获已启动 (最大 ${result.data?.maxRequests || '未知'} 个请求)`);
+              } else {
+                addLog('error', `启动失败: ${result.error || result.message}`);
+              }
+
+            } else if (op.action === 'stopNetworkCapture') {
+              addLog('info', '停止网络捕获...');
+              result = await window.browserAPI.invoke('network:stopDebuggerCapture');
+              if (result.success && result.data) {
+                addLog('success', `捕获了 ${result.data.requestCount} 个请求`);
+                addLog('info', `捕获时长: ${(result.data.totalDurationMs / 1000).toFixed(1)} 秒`);
+                addLog('info', `停止原因: ${result.data.stoppedBy || '未知'}`);
+                console.log('捕获的请求:', result.data.requests);
+                // 显示前 5 个请求
+                (result.data.requests || []).slice(0, 5).forEach((req, idx) => {
+                  addLog('info', `  ${idx + 1}. ${req.method} ${req.url} - ${req.statusCode || '未知'}`);
+                });
+                if (result.data.requests && result.data.requests.length > 5) {
+                  addLog('info', `  ... 还有 ${result.data.requests.length - 5} 个请求`);
+                }
+              }
+
+            } else if (op.action === 'startWebRequestCapture') {
+              addLog('info', '开始 WebRequest 捕获（不含响应体）...');
+              const viewId = await getCurrentViewId();
+              const maxTime = parseInt(args[0]) || 180000;
+              const inactivityTime = parseInt(args[1]) || 60000;
+              result = await window.browserAPI.invoke('network:startWebRequestCapture', viewId, {
+                maxCaptureTime: maxTime,
+                inactivityTimeout: inactivityTime,
+                includeStatic: false
+              });
+              if (result.success && result.data) {
+                addLog('success', `WebRequest 捕获已启动`);
+                addLog('info', `最大捕获时间: ${maxTime}ms`);
+                addLog('info', `无活动超时: ${inactivityTime}ms`);
+                addLog('info', `最大请求数: ${result.data.maxRequests || '未知'}`);
+                addLog('warn', '注意: WebRequest 不包含响应体内容');
+              } else {
+                addLog('error', `启动失败: ${result.error || result.message}`);
+              }
+
+            } else if (op.action === 'stopWebRequestCapture') {
+              addLog('info', '停止 WebRequest 捕获...');
+              const viewId = await getCurrentViewId();
+              result = await window.browserAPI.invoke('network:stopWebRequestCapture', viewId);
+              if (result.success && result.data) {
+                addLog('success', `✓ 捕获了 ${result.data.requestCount} 个请求`);
+                addLog('info', `捕获时长: ${(result.data.totalDurationMs / 1000).toFixed(1)} 秒`);
+                addLog('warn', '请求中不包含响应体内容');
+                if (result.data.requestLimitReached) {
+                  addLog('warn', `已达到请求数量限制`);
+                }
+                console.log('WebRequest 捕获结果:', result.data);
+                // 显示前 5 个请求
+                (result.data.requests || []).slice(0, 5).forEach((req, idx) => {
+                  addLog('info', `  ${idx + 1}. ${req.method} ${req.url} - ${req.statusCode || '未知'}`);
+                });
+                if (result.data.requests && result.data.requests.length > 5) {
+                  addLog('info', `  ... 还有 ${result.data.requests.length - 5} 个请求`);
+                }
+              } else {
+                addLog('error', `停止失败: ${result.error || result.message}`);
+              }
+
+            } else if (op.action === 'startDebuggerCapture') {
+              addLog('info', '开始 Debugger 捕获（含完整响应体）...');
+              const viewId = await getCurrentViewId();
+              const maxTime = parseInt(args[0]) || 180000;
+              const inactivityTime = parseInt(args[1]) || 60000;
+              result = await window.browserAPI.invoke('network:startDebuggerCapture', viewId, {
+                maxCaptureTime: maxTime,
+                inactivityTimeout: inactivityTime,
+                includeStatic: false
+              });
+              if (result.success && result.data) {
+                addLog('success', `Debugger 捕获已启动`);
+                addLog('info', `最大捕获时间: ${maxTime}ms`);
+                addLog('info', `无活动超时: ${inactivityTime}ms`);
+                addLog('info', `最大请求数: ${result.data.maxRequests || '未知'}`);
+                addLog('success', '✓ 包含完整响应体内容');
+              } else {
+                addLog('error', `启动失败: ${result.error || result.message}`);
+              }
+
+            } else if (op.action === 'stopDebuggerCapture') {
+              addLog('info', '停止 Debugger 捕获...');
+              const viewId = await getCurrentViewId();
+              result = await window.browserAPI.invoke('network:stopDebuggerCapture', viewId);
+              if (result.success && result.data) {
+                addLog('success', `✓ 捕获了 ${result.data.requestCount} 个请求`);
+                addLog('info', `捕获时长: ${(result.data.totalDurationMs / 1000).toFixed(1)} 秒`);
+                addLog('info', `停止原因: ${result.data.stoppedBy || '未知'}`);
+                addLog('success', '✓ 包含完整响应体内容');
+                if (result.data.requestLimitReached) {
+                  addLog('warn', `已达到请求数量限制`);
+                }
+                console.log('Debugger 捕获结果:', result.data);
+                // 显示前 5 个请求及其响应体
+                (result.data.requests || []).slice(0, 5).forEach((req, idx) => {
+                  addLog('info', `  ${idx + 1}. ${req.method} ${req.url} - ${req.statusCode || '未知'}`);
+                  if (req.responseBody) {
+                    const bodyPreview = req.responseBody.substring(0, 80);
+                    addLog('info', `     响应体: ${bodyPreview}${req.responseBody.length > 80 ? '...' : ''}`);
+                  }
+                  if (req.mimeType) {
+                    addLog('info', `     类型: ${req.mimeType}`);
+                  }
+                });
+                if (result.data.requests && result.data.requests.length > 5) {
+                  addLog('info', `  ... 还有 ${result.data.requests.length - 5} 个请求`);
+                }
+              } else {
+                addLog('error', `停止失败: ${result.error || result.message}`);
+              }
+
+            } else if (op.action === 'sendNetworkRequestAdvanced') {
+              const viewId = await getCurrentViewId();
+              addLog('info', `发送 ${args[1] || 'GET'} 请求到: ${args[0]}`);
+              result = await window.browserAPI.invoke('network:sendRequest', viewId, args[0], args[1] || 'GET', { 'Content-Type': 'application/json' }, null, 30000);
+              if (result.success && result.data) {
+                addLog('success', `请求成功 - 状态码: ${result.data.status || '未知'}`);
+                addLog('info', `状态文本: ${result.data.statusText || '未知'}`);
+                addLog('info', `响应类型: ${result.data.headers?.['content-type'] || '未知'}`);
+                addLog('info', `响应 URL: ${result.data.url || '未知'}`);
+                console.log('响应详情:', result.data);
+                // 显示响应体预览
+                if (result.data.body) {
+                  const bodyStr = typeof result.data.body === 'string' ? result.data.body : JSON.stringify(result.data.body);
+                  const preview = bodyStr.substring(0, 100);
+                  addLog('info', `响应体预览: ${preview}${bodyStr.length > 100 ? '...' : ''}`);
+                }
+              } else {
+                addLog('error', `请求失败: ${result.error || '未知错误'}`);
+              }
+
+            } else if (op.action === 'getNetworkStatus') {
+              addLog('info', '获取网络监控器状态...');
+              const viewId = await getCurrentViewId();
+              result = await window.browserAPI.invoke('network:getStatus', viewId);
+              if (result.success && result.data) {
+                addLog('success', '网络监控器状态：');
+                addLog('info', `WebRequest 捕获: ${result.data.webRequestCapturing ? '✓ 进行中' : '✗ 未启动'}`);
+                addLog('info', `Debugger 捕获: ${result.data.debuggerCapturing ? '✓ 进行中' : '✗ 未启动'}`);
+                if (!result.data.webRequestCapturing && !result.data.debuggerCapturing) {
+                  addLog('info', '当前没有正在进行的网络捕获');
+                }
+                console.log('网络状态详情:', result.data);
+              }
+
+            } else {
+              // 标准和增强操作 - 需要转换为 invoke 调用
+              const viewId = await getCurrentViewId();
+              const actionMap = {
+                'navigate': 'browser:navigate',
+                'click': 'automation:click',
+                'type': 'automation:type',
+                'waitForSelector': 'automation:waitForSelector',
+                'evaluate': 'content:evaluate',
+                'getInfo': 'browser:getInfo',
+                'goBack': 'browser:goBack',
+                'goForward': 'browser:goForward',
+                'reload': 'browser:reload',
+                'screenshot': 'browser:screenshot',
+                'getContent': 'content:getPageContent',
+                'scroll': 'automation:scroll',
+                'enhancedClick': 'automation:enhancedClick',
+                'fillForm': 'automation:fillForm',
+                'uploadFile': 'automation:uploadFile',
+                'simulateKeyboard': 'automation:simulateKeyboard',
+                'getInteractiveElements': 'automation:getInteractiveElements',
+                'findElementsByText': 'automation:findElementsByText',
+                'sendNetworkRequest': 'network:sendRequest',
+                'getTextContent': 'content:getTextContent',
+                'getHtmlContent': 'content:getHtmlContent',
+                'extractPageMetadata': 'content:extractMetadata'
+              };
+
+              const channel = actionMap[op.action];
+              if (channel) {
+                // 通用参数处理函数：根据 input 配置自动转换参数类型
+                const processInputValue = (input, value) => {
+                  if (value === undefined || value === null || value === '') {
+                    return undefined;
+                  }
+
+                  // 如果 input 配置了类型，使用配置的类型
+                  if (input.type === 'boolean') {
+                    return value === 'true' || value === true || value === 1 || value === '1';
+                  } else if (input.type === 'number') {
+                    const num = Number(value);
+                    return isNaN(num) ? value : num;
+                  } else if (input.type === 'array') {
+                    // 数组类型：支持逗号分隔的字符串或已经是数组
+                    if (Array.isArray(value)) return value;
+                    if (typeof value === 'string') {
+                      return value.split(',').map(t => t.trim()).filter(t => t);
+                    }
+                    return [value];
+                  }
+
+                  // 如果没有配置类型，根据参数名自动推断类型
+                  if (input.model === 'types' && typeof value === 'string') {
+                    // types 参数默认作为数组处理
+                    return value.split(',').map(t => t.trim()).filter(t => t);
+                  } else if (input.model.endsWith('Visibility') || input.model.endsWith('Coordinates') ||
+                    input.model.startsWith('include') || input.model.startsWith('strict') ||
+                    input.model.startsWith('is') || input.model.startsWith('has')) {
+                    // 根据命名模式推断为布尔值
+                    return value === 'true' || value === true || value === 1 || value === '1';
+                  }
+
+                  // 默认返回原值
+                  return value;
+                };
+
+                // 根据 paramMode 配置自动处理参数
+                if (op.paramMode === 'options') {
+                  // options 模式：将所有输入参数构建为 options 对象
+                  const options = {};
+                  if (op.inputs && op.inputs.length > 0) {
+                    op.inputs.forEach(input => {
+                      const processedValue = processInputValue(input, op.data[input.model]);
+                      if (processedValue !== undefined) {
+                        options[input.model] = processedValue;
+                      }
+                    });
+                  }
+                  result = await window.browserAPI.invoke(channel, viewId, options);
+                }
+                else if (op.paramMode === 'textQuery+options') {
+                  // textQuery+options 模式：textQuery 作为第一个参数，其他构建为 options
+                  let textQuery = '';
+                  const options = {};
+                  if (op.inputs && op.inputs.length > 0) {
+                    op.inputs.forEach(input => {
+                      if (input.model === 'textQuery') {
+                        textQuery = op.data[input.model] || '';
+                      } else {
+                        const processedValue = processInputValue(input, op.data[input.model]);
+                        if (processedValue !== undefined) {
+                          options[input.model] = processedValue;
+                        }
+                      }
+                    });
+                  }
+                  result = await window.browserAPI.invoke(channel, viewId, textQuery, options);
+                }
+                // 其他操作按原样传递参数
+                else {
+                  result = await window.browserAPI.invoke(channel, viewId, ...args);
+                }
+              } else {
+                throw new Error(`未知的操作: ${op.action}`);
+              }
+            }
+
+            addLog('success', `${op.name} 执行成功`);
+            if (result && typeof result === 'object') {
+              console.log('操作结果:', result);
+            }
+          } catch (error) {
+            addLog('error', `${op.name} 执行失败: ${error.message}`);
+            console.error('操作错误:', error);
+          }
+        };
+
+        // 监听日志变化，自动滚动
+        watch(() => logs.length, () => {
+          nextTick(() => {
+            if (logsContent.value) {
+              logsContent.value.scrollTop = logsContent.value.scrollHeight;
+            }
+          });
+        });
+
+        // 页面加载时添加欢迎日志
+        addLog('info', '控制面板已就绪');
+        window.logger.info('控制面板已就绪');
+
+        // 页面加载时初始化视图信息
+        refreshViewInfo();
+
+        return {
+          activeTab,
+          logs,
+          logsContent,
+          currentViewId,
+          viewCount,
+          viewOperations,
+          standardOperations,
+          enhancedOperations,
+          automationOperations,
+          executeOperation,
+          executeViewOperation,
+          clearLogs,
+          refreshViewInfo
+        };
+      }
+    }).use(ElementPlus).mount('#app');
+  </script>
+</body>
+
+</html>
