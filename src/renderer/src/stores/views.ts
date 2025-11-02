@@ -22,6 +22,8 @@ export interface ViewItem extends LayoutItem {
   thumbnail?: string;
   /** 是否正在加载 */
   loading?: boolean;
+  /** Favicon URL */
+  favicon?: string;
 }
 
 export const useViewsStore = defineStore("views", () => {

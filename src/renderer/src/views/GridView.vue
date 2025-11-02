@@ -1,7 +1,26 @@
 <template>
-  <div
-    class="w-full h-full flex flex-col font-sans pt-8 border border-gray-300"
-  >
+  <div class="w-full h-full flex flex-col font-sans border border-gray-300">
+    <Header>
+      <div class="flex gap-2 items-center h-full p-2 z-100">
+        <button
+          class="w-10 h-full rounded-md cursor-pointer flex items-center justify-center transition-all z-[1000] hover:scale-105 no-drag border border-gray-200/50"
+          @click="handleAddView"
+          title="添加新视图"
+        >
+          <PlusCircle />
+        </button>
+
+        <div
+          class="flex items-center gap-2 text-gray-900/85 text-xs font-mono z-[1500] px-2"
+        >
+          <span>容器数量: {{ viewsStore.viewCount }}</span>
+          <span>已显示: {{ visibleCount }}</span>
+          <span v-if="gridStore.isDragging">拖拽中...</span>
+          <span v-else-if="gridStore.isResizing">调整大小中...</span>
+        </div>
+      </div>
+    </Header>
+
     <div ref="gridWrapperRef" class="flex-1 overflow-auto pt-2 p-1">
       <GridLayout
         ref="gridLayoutRef"
@@ -69,7 +88,14 @@
                 >
                   <ChevronRight />
                 </button>
-                <Globe class="ml-1" />
+                <img
+                  v-if="view.favicon"
+                  :src="view.favicon"
+                  class="w-4 h-4 shrink-0 object-contain ml-1"
+                  @error="handleFaviconError(view.id)"
+                  alt="favicon"
+                />
+                <Globe v-else class="ml-1" />
                 <span
                   class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
                   >{{ view.title || "未命名" }}</span
@@ -152,25 +178,6 @@
         </GridItem>
       </GridLayout>
     </div>
-
-    <div class="fixed left-0 top-0 h-10 p-2 z-100">
-      <button
-        class="w-10 h-full rounded-md cursor-pointer flex items-center justify-center transition-all z-[1000] hover:scale-105 no-drag border border-gray-200/50"
-        @click="handleAddView"
-        title="添加新视图"
-      >
-        <PlusCircle />
-      </button>
-    </div>
-
-    <div
-      class="fixed left-1 bottom-1 flex items-center gap-2 text-gray-900/85 text-xs font-mono z-[1500] px-2"
-    >
-      <span>容器数量: {{ viewsStore.viewCount }}</span>
-      <span>已显示: {{ visibleCount }}</span>
-      <span v-if="gridStore.isDragging">拖拽中...</span>
-      <span v-else-if="gridStore.isResizing">调整大小中...</span>
-    </div>
   </div>
 </template>
 
@@ -184,6 +191,7 @@ import {
   computed,
   type ComponentPublicInstance,
 } from "vue";
+import Header from "@/components/Header.vue";
 import { GridLayout, GridItem } from "grid-layout-plus";
 import { useGridStore } from "@/stores/grid";
 import { useViewsStore, type ViewItem } from "@/stores/views";
@@ -321,9 +329,12 @@ async function toggleViewVisibility(viewId: string) {
 
     await nextTick();
 
+    // 先计算并设置 bounds，再显示视图
+    updateViewBoundsImmediate(viewId);
+    await nextTick();
+
     // 使用 setViewVisible 显示视图（支持多视图同时显示）
     await ipc.setViewVisible(backendId, true);
-    updateViewBounds(viewId);
     updateViewHistory(viewId);
   } else {
     if (view.backendId) {
@@ -377,6 +388,11 @@ function _updateViewBounds(viewId: string) {
   });
 }
 
+/** 立即更新视图边界（不使用防抖） */
+function updateViewBoundsImmediate(viewId: string) {
+  _updateViewBounds(viewId);
+}
+
 /** 因为grid变形之后需要一些时间让节点稳定 */
 function updateViewBounds(viewId: string) {
   debounce(_updateViewBounds, 500)(viewId);
@@ -425,8 +441,12 @@ async function handleAddView() {
       // 创建成功，现在显示视图
       viewsStore.setVisibility(newViewId, true);
       await nextTick();
+
+      // 先计算并设置 bounds，再显示视图
+      updateViewBoundsImmediate(newViewId);
+      await nextTick();
+
       await ipc.setViewVisible(backendId, true);
-      updateViewBounds(newViewId);
       updateViewHistory(newViewId);
     }
   }
@@ -608,12 +628,63 @@ function handleViewsSyncEvent(_payload: {
   syncViews();
 }
 
+// 处理标题更新事件
+function handleTitleUpdatedEvent(payload: { viewId: string; title: string }) {
+  const view = viewsStore.views.find((v) => v.backendId === payload.viewId);
+  if (view) {
+    viewsStore.updateView(view.id, { title: payload.title });
+  }
+}
+
+// 处理Favicon更新事件
+function handleFaviconUpdatedEvent(payload: {
+  viewId: string;
+  favicon: string;
+}) {
+  const view = viewsStore.views.find((v) => v.backendId === payload.viewId);
+  if (view) {
+    viewsStore.updateView(view.id, { favicon: payload.favicon });
+  }
+}
+
+// 处理Favicon加载错误
+function handleFaviconError(viewId: string) {
+  const view = viewsStore.views.find((v) => v.id === viewId);
+  if (view) {
+    viewsStore.updateView(viewId, { favicon: undefined });
+  }
+}
+
 function handleWindowResize() {
   updateAllVisibleViewBounds();
 }
 
+// 滚动时隐藏所有可见视图
+function hideAllVisibleViews() {
+  viewsStore.views.forEach((view) => {
+    if (view.visible && view.backendId) {
+      hideBackendView(view);
+    }
+  });
+}
+
+// 滚动结束后显示并更新所有可见视图
+function showAllVisibleViews() {
+  viewsStore.views.forEach((view) => {
+    if (view.visible && view.backendId) {
+      updateViewBoundsImmediate(view.id);
+    }
+  });
+}
+
+// 使用 debounce 延迟显示视图
+const debouncedShowAllViews = debounce(showAllVisibleViews, 150);
+
 function handleGridScroll() {
-  updateAllVisibleViewBounds();
+  // 滚动开始时立即隐藏所有视图
+  hideAllVisibleViews();
+  // 滚动结束后显示视图
+  debouncedShowAllViews();
 }
 
 watch(
@@ -629,11 +700,13 @@ watch(
 // 定期更新可见视图的历史记录状态
 let historyUpdateInterval: ReturnType<typeof setInterval> | null = null;
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener("resize", handleWindowResize);
   gridWrapperRef.value?.addEventListener("scroll", handleGridScroll);
   browserAPI?.on?.("ui:view-hidden", handleViewHiddenEvent);
   browserAPI?.on?.("views:sync", handleViewsSyncEvent);
+  browserAPI?.on?.("views:title-updated", handleTitleUpdatedEvent);
+  browserAPI?.on?.("views:favicon-updated", handleFaviconUpdatedEvent);
 
   // 每 2 秒更新一次历史记录状态
   historyUpdateInterval = setInterval(() => {
@@ -643,17 +716,37 @@ onMounted(() => {
       }
     });
   }, 2000);
+
+  // 重新挂载时，更新所有可见视图的位置并显示
+  await nextTick();
+  viewsStore.views.forEach(async (view) => {
+    if (view.visible && view.backendId) {
+      // 先计算并设置 bounds，再显示视图
+      updateViewBoundsImmediate(view.id);
+      await nextTick();
+      await ipc.setViewVisible(view.backendId, true);
+    }
+  });
 });
 
-onUnmounted(() => {
+onUnmounted(async () => {
   window.removeEventListener("resize", handleWindowResize);
   gridWrapperRef.value?.removeEventListener("scroll", handleGridScroll);
   browserAPI?.off?.("ui:view-hidden", handleViewHiddenEvent);
   browserAPI?.off?.("views:sync", handleViewsSyncEvent);
+  browserAPI?.off?.("views:title-updated", handleTitleUpdatedEvent);
+  browserAPI?.off?.("views:favicon-updated", handleFaviconUpdatedEvent);
 
   if (historyUpdateInterval) {
     clearInterval(historyUpdateInterval);
     historyUpdateInterval = null;
+  }
+
+  // 卸载时隐藏所有可见的视图
+  for (const view of viewsStore.views) {
+    if (view.visible && view.backendId) {
+      await ipc.setViewVisible(view.backendId, false);
+    }
   }
 });
 </script>

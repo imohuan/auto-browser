@@ -42,7 +42,11 @@ contextBridge.exposeInMainWorld('browserAPI', {
    * - 失败: { success: false, error: 'xxx', stack: 'xxx', duration: 123, channel: 'xxx' }
    */
   invoke: (channel, ...args) => {
-    logger.debug(`IPC 调用: ${channel}`, { argsCount: args.length });
+    const channels_no_logs = ["browser:getInfo", "ui:window-move"];
+    const shouldLog = !channels_no_logs.includes(channel);
+    if (shouldLog) {
+      logger.debug(`IPC 调用: ${channel}`, { argsCount: args.length });
+    }
     return ipcRenderer.invoke('ipc:execute', channel, ...args);
   },
 

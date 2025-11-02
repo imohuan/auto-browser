@@ -509,6 +509,8 @@ export interface WindowState {
   isMaximized: boolean;
   /** 是否最小化 */
   isMinimized: boolean;
+  /** 是否置顶 */
+  isAlwaysOnTop: boolean;
 }
 
 /**
@@ -559,6 +561,24 @@ export interface ShowViewMenuOptions {
   viewId: string;
   /** 后端视图 ID（用于操作目标视图） */
   backendId: string;
+}
+
+/**
+ * 标签页右键菜单选项
+ */
+export interface ShowTabContextMenuOptions {
+  /** 屏幕 X 坐标 */
+  screenX: number;
+  /** 屏幕 Y 坐标 */
+  screenY: number;
+  /** 视图 ID */
+  viewId: string;
+  /** 后端视图 ID（用于操作目标视图） */
+  backendId: string | null;
+  /** 当前标签页索引 */
+  currentIndex: number;
+  /** 标签页总数 */
+  totalCount: number;
 }
 
 // ============================================================================
@@ -1027,6 +1047,24 @@ export type UIShowViewMenu = (options: ShowViewMenuOptions) => Promise<{
 }>;
 
 /**
+ * 显示标签页右键菜单
+ *
+ * @param options - 菜单选项
+ * @param options.screenX - 屏幕 X 坐标
+ * @param options.screenY - 屏幕 Y 坐标
+ * @param options.viewId - 视图 ID
+ * @param options.backendId - 后端视图 ID（用于操作目标视图）
+ * @param options.currentIndex - 当前标签页索引
+ * @param options.totalCount - 标签页总数
+ * @returns 是否成功
+ */
+export type UIShowTabContextMenu = (
+  options: ShowTabContextMenuOptions
+) => Promise<{
+  success: boolean;
+}>;
+
+/**
  * 窗口最小化
  *
  * @returns 是否成功
@@ -1064,6 +1102,24 @@ export type UIWindowClose = () => Promise<{
 export type UIWindowState = () => Promise<{
   success: boolean;
   data: WindowState;
+  error?: string;
+}>;
+
+/**
+ * 窗口顶置切换
+ *
+ * @returns 是否成功
+ */
+export type UIWindowToggleAlwaysOnTop = () => Promise<{
+  success: boolean;
+  error?: string;
+}>;
+
+/**
+ * 移动窗口位置
+ */
+export type UIWindowMove = (params: { x: number; y: number }) => Promise<{
+  success: boolean;
   error?: string;
 }>;
 
@@ -1307,10 +1363,13 @@ export interface IPCChannels {
 
   // UI Channels
   "ui:showViewMenu": UIShowViewMenu;
+  "ui:showTabContextMenu": UIShowTabContextMenu;
   "ui:window-minimize": UIWindowMinimize;
   "ui:window-toggle-maximize": UIWindowToggleMaximize;
   "ui:window-close": UIWindowClose;
   "ui:window-state": UIWindowState;
+  "ui:window-toggle-always-on-top": UIWindowToggleAlwaysOnTop;
+  "ui:window-move": UIWindowMove;
 
   // Browser Channels
   "browser:navigate": BrowserNavigate;

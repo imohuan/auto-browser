@@ -113,6 +113,34 @@ class ViewManager {
       rebindOnLoad: false, // 由外部手动在 did-finish-load 中重新绑定
     });
 
+    // 监听页面标题更新
+    view.webContents.on('page-title-updated', (_event, title) => {
+      config.title = title;
+      logger.debug(`页面标题更新: ${viewId}`, { title });
+      // 通知主渲染进程标题已更新
+      if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+        this.mainView.webContents.send('views:title-updated', {
+          viewId,
+          title,
+        });
+      }
+    });
+
+    // 监听Favicon更新
+    view.webContents.on('page-favicon-updated', (_event, favicons) => {
+      if (favicons && favicons.length > 0) {
+        config.favicon = favicons[0]; // 使用第一个favicon
+        logger.debug(`Favicon更新: ${viewId}`, { favicon: favicons[0] });
+        // 通知主渲染进程favicon已更新
+        if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+          this.mainView.webContents.send('views:favicon-updated', {
+            viewId,
+            favicon: favicons[0],
+          });
+        }
+      }
+    });
+
     // 监听页面加载完成，重新绑定快捷键
     view.webContents.on('did-finish-load', () => {
       logger.debug(`页面加载完成，快捷键已重新绑定: ${viewId}`);

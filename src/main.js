@@ -41,11 +41,11 @@ async function createWindow() {
     title: WINDOW_CONFIG.MAIN_WINDOW.TITLE,
     backgroundColor: WINDOW_CONFIG.MAIN_WINDOW.BACKGROUND_COLOR,
     frame: false,
-    transparent: true,
+    // Windows 上 transparent: true 会禁用原生的窗口调整大小功能
+    // transparent: true,
     resizable: true,
     minWidth: 400,
     minHeight: 300,
-    ...(process.platform === 'win32' && { thickFrame: true }),
   });
 
   // 禁止顶部菜单栏

@@ -6,6 +6,82 @@ const logger = createLogger('handlers/ui');
 
 export function registerUIHandlers(viewManager, mainWindow, mainView) {
   ipcManager.registerBatch({
+    'ui:showTabContextMenu': async ({ screenX, screenY, viewId, backendId, currentIndex, totalCount }) => {
+      logger.debug('显示标签页右键菜单', { viewId, currentIndex, totalCount });
+
+      const template = [
+        {
+          label: '刷新',
+          accelerator: 'F5',
+          click: () => {
+            if (mainView?.webContents && !mainView.webContents.isDestroyed()) {
+              mainView.webContents.send('ui:tab-menu-action', {
+                action: 'reload',
+                viewId,
+              });
+            }
+          },
+        },
+        { type: 'separator' },
+        {
+          label: '关闭标签页',
+          accelerator: 'Ctrl+W',
+          click: () => {
+            if (mainView?.webContents && !mainView.webContents.isDestroyed()) {
+              mainView.webContents.send('ui:tab-menu-action', {
+                action: 'close',
+                viewId,
+              });
+            }
+          },
+        },
+        {
+          label: '关闭其他标签页',
+          enabled: totalCount > 1,
+          click: () => {
+            if (mainView?.webContents && !mainView.webContents.isDestroyed()) {
+              mainView.webContents.send('ui:tab-menu-action', {
+                action: 'closeOthers',
+                viewId,
+              });
+            }
+          },
+        },
+        {
+          label: '关闭左侧标签页',
+          enabled: currentIndex > 0,
+          click: () => {
+            if (mainView?.webContents && !mainView.webContents.isDestroyed()) {
+              mainView.webContents.send('ui:tab-menu-action', {
+                action: 'closeLeft',
+                viewId,
+              });
+            }
+          },
+        },
+        {
+          label: '关闭右侧标签页',
+          enabled: currentIndex < totalCount - 1,
+          click: () => {
+            if (mainView?.webContents && !mainView.webContents.isDestroyed()) {
+              mainView.webContents.send('ui:tab-menu-action', {
+                action: 'closeRight',
+                viewId,
+              });
+            }
+          },
+        },
+      ];
+
+      const menu = Menu.buildFromTemplate(template);
+      // 不传递坐标，让菜单自动显示在鼠标位置
+      menu.popup({
+        window: mainWindow,
+      });
+
+      return { success: true };
+    },
+
     'ui:showViewMenu': async ({ screenX, screenY, viewId, backendId }) => {
       const view = backendId ? viewManager.getView(backendId) : null;
 
@@ -125,8 +201,29 @@ export function registerUIHandlers(viewManager, mainWindow, mainView) {
         data: {
           isMaximized: mainWindow.isMaximized(),
           isMinimized: mainWindow.isMinimized(),
+          isAlwaysOnTop: mainWindow.isAlwaysOnTop(),
         },
       };
+    },
+
+    // 窗口顶置切换
+    'ui:window-toggle-always-on-top': async () => {
+      if (!mainWindow) {
+        return { success: false, error: '主窗口不存在' };
+      }
+      const currentState = mainWindow.isAlwaysOnTop();
+      mainWindow.setAlwaysOnTop(!currentState);
+      logger.debug(`窗口顶置已${!currentState ? '开启' : '关闭'}`);
+      return { success: true };
+    },
+
+    // 窗口移动
+    'ui:window-move': async ({ x, y }) => {
+      if (!mainWindow) {
+        return { success: false, error: '主窗口不存在' };
+      }
+      mainWindow.setPosition(Math.round(x), Math.round(y));
+      return { success: true };
     },
   });
 }

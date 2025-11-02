@@ -79,6 +79,8 @@ class IPCManager {
    */
   async execute(channel, ...args) {
     const startTime = Date.now();
+    const channels_no_logs = ["browser:getInfo", "ui:window-move"];
+    const shouldLog = !channels_no_logs.includes(channel);
 
     // 1. 查找处理器配置
     const config = this.handlers.get(channel);
@@ -93,10 +95,9 @@ class IPCManager {
       };
     }
 
-    // browser:getInfo 不记录日志 因为他会频繁调用
     try {
       // 2. 记录开始日志（可选包含参数）
-      if (channel !== "browser:getInfo") {
+      if (shouldLog) {
         if (config.logArgs && args.length > 0) {
           logger.debug(`[${channel}] 开始执行`, { args });
         } else {
@@ -117,7 +118,7 @@ class IPCManager {
       // 4. 记录成功日志和执行时长
       const duration = Date.now() - startTime;
 
-      if (channel !== "browser:getInfo") {
+      if (shouldLog) {
         if (config.logResult) {
           logger.debug(`[${channel}] 执行成功 (${duration}ms)`, { result });
         } else {
@@ -133,7 +134,7 @@ class IPCManager {
         channel,
       };
 
-      if (channel !== "browser:getInfo") {
+      if (shouldLog) {
         this._writeResult(response);
       }
 

@@ -7,6 +7,14 @@ import type { RouteRecordRaw } from "vue-router";
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
+    name: "Browser",
+    component: () => import("@/views/BrowserView.vue"),
+    meta: {
+      title: "浏览器",
+    },
+  },
+  {
+    path: "/grid",
     name: "Grid",
     component: () => import("@/views/GridView.vue"),
     meta: {
