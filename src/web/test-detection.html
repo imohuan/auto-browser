@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electron 反检测测试</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+    }
+
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+
+    .test-item {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-left: 4px solid #ddd;
+    }
+
+    .test-item.pass {
+      border-left-color: #28a745;
+      background: #d4edda;
+    }
+
+    .test-item.fail {
+      border-left-color: #dc3545;
+      background: #f8d7da;
+    }
+
+    .test-name {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .test-result {
+      color: #666;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      word-break: break-all;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .status.pass {
+      background: #28a745;
+      color: white;
+    }
+
+    .status.fail {
+      background: #dc3545;
+      color: white;
+    }
+
+    .summary {
+      text-align: center;
+      padding: 20px;
+      margin-top: 20px;
+      background: #e9ecef;
+      border-radius: 8px;
+    }
+
+    .summary-score {
+      font-size: 48px;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .summary-text {
+      font-size: 18px;
+      color: #666;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      display: block;
+      margin: 20px auto;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #5568d3;
+    }
+
+    .test-section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      color: #667eea;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🛡️ Electron 反爬虫检测测试</h1>
+
+    <button onclick="runTests()">🔄 重新测试</button>
+
+    <div class="test-section">
+      <div class="section-title">基础检测项</div>
+      <div id="basic-tests"></div>
+    </div>
+
+    <div class="test-section">
+      <div class="section-title">高级检测项</div>
+      <div id="advanced-tests"></div>
+    </div>
+
+    <div class="test-section">
+      <div class="section-title">浏览器指纹</div>
+      <div id="fingerprint-tests"></div>
+    </div>
+
+    <div class="summary" id="summary">
+      <div class="summary-score" id="score">0/0</div>
+      <div class="summary-text" id="summary-text">正在测试...</div>
+    </div>
+  </div>
+
+  <script>
+    let passCount = 0;
+    let totalCount = 0;
+
+    function createTestItem(name, result, isPassed, containerId) {
+      totalCount++;
+      if (isPassed) passCount++;
+
+      const item = document.createElement('div');
+      item.className = `test-item ${isPassed ? 'pass' : 'fail'}`;
+      item.innerHTML = `
+                <div class="test-name">
+                    ${name}
+                    <span class="status ${isPassed ? 'pass' : 'fail'}">
+                        ${isPassed ? '✓ 通过' : '✗ 失败'}
+                    </span>
+                </div>
+                <div class="test-result">${result}</div>
+            `;
+      document.getElementById(containerId).appendChild(item);
+    }
+
+    function runTests() {
+      passCount = 0;
+      totalCount = 0;
+
+      document.getElementById('basic-tests').innerHTML = '';
+      document.getElementById('advanced-tests').innerHTML = '';
+      document.getElementById('fingerprint-tests').innerHTML = '';
+
+      // ============================================
+      // 基础检测项
+      // ============================================
+
+      // 1. navigator.webdriver
+      const webdriver = navigator.webdriver;
+      createTestItem(
+        '1. navigator.webdriver',
+        `值: ${webdriver} (应该是 undefined)`,
+        webdriver === undefined,
+        'basic-tests'
+      );
+
+      // 2. window.chrome
+      const hasChrome = !!window.chrome;
+      createTestItem(
+        '2. window.chrome 对象',
+        `存在: ${hasChrome} (应该是 true)`,
+        hasChrome,
+        'basic-tests'
+      );
+
+      // 3. navigator.plugins
+      const pluginsCount = navigator.plugins.length;
+      createTestItem(
+        '3. navigator.plugins',
+        `插件数量: ${pluginsCount} (应该 > 0)`,
+        pluginsCount > 0,
+        'basic-tests'
+      );
+
+      // 4. navigator.languages
+      const languages = navigator.languages;
+      createTestItem(
+        '4. navigator.languages',
+        `语言列表: ${JSON.stringify(languages)} (应该多于1个)`,
+        languages.length > 1,
+        'basic-tests'
+      );
+
+      // 5. User-Agent
+      const ua = navigator.userAgent;
+      const hasElectron = ua.includes('Electron');
+      createTestItem(
+        '5. User-Agent',
+        `${ua.substring(0, 80)}... (不应包含 "Electron")`,
+        !hasElectron,
+        'basic-tests'
+      );
+
+      // ============================================
+      // 高级检测项
+      // ============================================
+
+      // 6. Permissions API
+      let permissionsPass = false;
+      if (navigator.permissions) {
+        permissionsPass = true;
+        createTestItem(
+          '6. Permissions API',
+          'Permissions API 存在并且正常',
+          true,
+          'advanced-tests'
+        );
+      } else {
+        createTestItem(
+          '6. Permissions API',
+          'Permissions API 不存在',
+          false,
+          'advanced-tests'
+        );
+      }
+
+      // 7. window.chrome.runtime
+      const hasChromeRuntime = window.chrome && window.chrome.runtime;
+      createTestItem(
+        '7. window.chrome.runtime',
+        `存在: ${hasChromeRuntime} (应该是 true)`,
+        hasChromeRuntime,
+        'advanced-tests'
+      );
+
+      // 8. window.chrome.loadTimes
+      const hasChromeLoadTimes = window.chrome && typeof window.chrome.loadTimes === 'function';
+      createTestItem(
+        '8. window.chrome.loadTimes',
+        `存在: ${hasChromeLoadTimes} (应该是 true)`,
+        hasChromeLoadTimes,
+        'advanced-tests'
+      );
+
+      // 9. navigator.mimeTypes
+      const mimeTypesCount = navigator.mimeTypes.length;
+      createTestItem(
+        '9. navigator.mimeTypes',
+        `MIME 类型数量: ${mimeTypesCount} (应该 > 0)`,
+        mimeTypesCount > 0,
+        'advanced-tests'
+      );
+
+      // 10. 检查是否有 Electron 全局变量
+      const hasElectronGlobal = window.require || window.electron || window._electron;
+      createTestItem(
+        '10. Electron 全局变量',
+        `检测到 Electron 特征: ${hasElectronGlobal} (应该是 undefined)`,
+        !hasElectronGlobal,
+        'advanced-tests'
+      );
+
+      // ============================================
+      // 浏览器指纹
+      // ============================================
+
+      // 11. Canvas 指纹
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillText('Test', 10, 10);
+        const canvasData = canvas.toDataURL();
+        createTestItem(
+          '11. Canvas 指纹',
+          `Canvas 可用，长度: ${canvasData.length}`,
+          canvasData.length > 0,
+          'fingerprint-tests'
+        );
+      } catch (e) {
+        createTestItem(
+          '11. Canvas 指纹',
+          `Canvas 错误: ${e.message}`,
+          false,
+          'fingerprint-tests'
+        );
+      }
+
+      // 12. WebGL 指纹
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+          const vendor = gl.getParameter(gl.VENDOR);
+          const renderer = gl.getParameter(gl.RENDERER);
+          createTestItem(
+            '12. WebGL 指纹',
+            `供应商: ${vendor}, 渲染器: ${renderer}`,
+            vendor && renderer,
+            'fingerprint-tests'
+          );
+        } else {
+          createTestItem(
+            '12. WebGL 指纹',
+            'WebGL 不可用',
+            false,
+            'fingerprint-tests'
+          );
+        }
+      } catch (e) {
+        createTestItem(
+          '12. WebGL 指纹',
+          `WebGL 错误: ${e.message}`,
+          false,
+          'fingerprint-tests'
+        );
+      }
+
+      // 13. navigator.hardwareConcurrency
+      const hardwareConcurrency = navigator.hardwareConcurrency;
+      createTestItem(
+        '13. CPU 核心数',
+        `核心数: ${hardwareConcurrency} (应该是合理的数值)`,
+        hardwareConcurrency >= 2 && hardwareConcurrency <= 64,
+        'fingerprint-tests'
+      );
+
+      // 14. navigator.deviceMemory
+      const deviceMemory = navigator.deviceMemory;
+      createTestItem(
+        '14. 设备内存',
+        `内存: ${deviceMemory}GB (应该是合理的数值)`,
+        deviceMemory === undefined || (deviceMemory >= 2 && deviceMemory <= 64),
+        'fingerprint-tests'
+      );
+
+      // 15. navigator.maxTouchPoints
+      const maxTouchPoints = navigator.maxTouchPoints;
+      createTestItem(
+        '15. 触控点数量',
+        `触控点: ${maxTouchPoints}`,
+        maxTouchPoints >= 0,
+        'fingerprint-tests'
+      );
+
+      // ============================================
+      // 更新总结
+      // ============================================
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const percentage = Math.round((passCount / totalCount) * 100);
+      document.getElementById('score').textContent = `${passCount}/${totalCount}`;
+
+      const summaryText = document.getElementById('summary-text');
+      if (percentage >= 90) {
+        summaryText.textContent = '🎉 优秀！反检测配置非常完善';
+        summaryText.style.color = '#28a745';
+      } else if (percentage >= 70) {
+        summaryText.textContent = '👍 良好！大部分检测项已通过';
+        summaryText.style.color = '#ffc107';
+      } else if (percentage >= 50) {
+        summaryText.textContent = '⚠️ 一般，建议优化反检测配置';
+        summaryText.style.color = '#ff9800';
+      } else {
+        summaryText.textContent = '❌ 较差，强烈建议配置反检测脚本';
+        summaryText.style.color = '#dc3545';
+      }
+    }
+
+    // 页面加载时自动运行测试
+    window.onload = runTests;
+  </script>
+</body>
+
+</html>

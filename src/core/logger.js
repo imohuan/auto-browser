@@ -159,7 +159,14 @@ function writeLog(level, message, data, moduleName) {
     const logDir = path.dirname(logFilePath);
     ensureDir(logDir);
 
+    // 写入普通日志文件
     fs.appendFileSync(logFilePath, fileMessage + '\n', 'utf-8');
+
+    // 如果是 ERROR 级别，额外写入到错误日志文件
+    if (level === LOG_LEVEL.ERROR) {
+      const errorLogFilePath = APP_CONFIG.ERROR_LOG_FILE;
+      fs.appendFileSync(errorLogFilePath, fileMessage + '\n', 'utf-8');
+    }
   } catch (error) {
     console.error('写入日志文件失败:', error.message);
   }
@@ -192,10 +199,17 @@ const defaultLogger = {
   clear: () => {
     try {
       const logFilePath = APP_CONFIG.LOG_FILE;
+      const errorLogFilePath = APP_CONFIG.ERROR_LOG_FILE;
       const logDir = path.dirname(logFilePath);
       ensureDir(logDir);
+
+      // 清空普通日志文件
       fs.writeFileSync(logFilePath, '', 'utf-8');
-      console.log('日志文件已清空');
+
+      // 清空错误日志文件
+      fs.writeFileSync(errorLogFilePath, '', 'utf-8');
+
+      console.log('日志文件已清空（包括错误日志）');
     } catch (error) {
       console.error('清空日志文件失败:', error.message);
     }

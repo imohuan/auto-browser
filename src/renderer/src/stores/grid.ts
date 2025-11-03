@@ -25,6 +25,9 @@ export const useGridStore = defineStore("grid", () => {
   const isDragging = ref(false);
   const isResizing = ref(false);
 
+  // 进入网格模式时需要自动滚动到的视图ID
+  const pendingScrollViewId = ref<string | null>(null);
+
   /**
    * 将Grid坐标转换为窗口绝对坐标
    * @param item Grid项
@@ -77,6 +80,13 @@ export const useGridStore = defineStore("grid", () => {
     isResizing.value = value;
   }
 
+  /**
+   * 设置需要滚动到的视图ID
+   */
+  function setPendingScrollViewId(id: string | null) {
+    pendingScrollViewId.value = id;
+  }
+
   return {
     // 状态
     colNum,
@@ -84,10 +94,12 @@ export const useGridStore = defineStore("grid", () => {
     margin,
     isDragging,
     isResizing,
+    pendingScrollViewId,
     // 方法
     gridToWindow,
     getConfig,
     setDragging,
     setResizing,
+    setPendingScrollViewId,
   };
 });

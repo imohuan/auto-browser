@@ -83,12 +83,16 @@ import Maximize from "@/icons/Maximize.vue";
 import RestoreDown from "@/icons/RestoreDown.vue";
 import XMarkClose from "@/icons/XMarkClose.vue";
 import Pin from "@/icons/Pin.vue";
+import { useViewsStore } from "@/stores/views";
+import { useGridStore } from "@/stores/grid";
 
 const router = useRouter();
 const route = useRoute();
 const ipc = useIPC();
 const isMaximized = ref(false);
 const isAlwaysOnTop = ref(false);
+const viewsStore = useViewsStore();
+const gridStore = useGridStore();
 
 // 当前模式
 const currentMode = computed(() => {
@@ -149,12 +153,46 @@ async function handleToggleAlwaysOnTop() {
   }
 }
 
+async function hideAllWebContentsViews() {
+  const backendIds = new Set<string>();
+  viewsStore.views.forEach((view) => {
+    if (view.backendId) {
+      backendIds.add(view.backendId);
+    }
+  });
+
+  const tasks = Array.from(backendIds).map((backendId) =>
+    ipc.setViewVisible(backendId, false).catch((error: unknown) => {
+      console.error(`隐藏视图 ${backendId} 失败:`, error);
+    })
+  );
+
+  if (tasks.length > 0) {
+    await Promise.all(tasks);
+  }
+}
+
 // 切换模式
-function switchToMode(mode: "browser" | "grid") {
+async function switchToMode(mode: "browser" | "grid") {
+  if (
+    (mode === "browser" && currentMode.value === "browser") ||
+    (mode === "grid" && currentMode.value === "grid")
+  ) {
+    return;
+  }
+
+  await hideAllWebContentsViews();
+
   if (mode === "browser") {
-    router.push("/");
+    const firstView = viewsStore.views[0];
+    if (firstView) {
+      viewsStore.selectView(firstView.id);
+    }
+    gridStore.setPendingScrollViewId(null);
+    await router.push("/");
   } else if (mode === "grid") {
-    router.push("/grid");
+    gridStore.setPendingScrollViewId(viewsStore.selectedViewId);
+    await router.push("/grid");
   }
 }
 

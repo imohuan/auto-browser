@@ -3,6 +3,9 @@
 
 import { ipcManager } from '../core/ipc-manager.js';
 import { createLogger } from '../core/logger.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const logger = createLogger('handlers/views');
 

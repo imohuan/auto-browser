@@ -24,6 +24,10 @@ export const APP_CONFIG = {
   get LOG_FILE() {
     return isPackaged() ? resolveUserData('logs', 'app.log') : resolveRoot('logs', 'app.log');
   },
+  // 错误日志文件路径：单独存储 error 级别的日志
+  get ERROR_LOG_FILE() {
+    return isPackaged() ? resolveUserData('logs', 'error.log') : resolveRoot('logs', 'error.log');
+  },
   get STORE_FILE() {
     return resolveUserData('store');
   },

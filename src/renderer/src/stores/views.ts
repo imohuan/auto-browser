@@ -24,6 +24,12 @@ export interface ViewItem extends LayoutItem {
   loading?: boolean;
   /** Favicon URL */
   favicon?: string;
+  /** 加载失败错误信息 */
+  loadError?: {
+    errorCode: number;
+    errorDescription: string;
+    validatedURL: string;
+  };
 }
 
 export const useViewsStore = defineStore("views", () => {

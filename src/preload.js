@@ -3,6 +3,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import { APP_CONFIG } from './core/constants.js';
+import { injectStealthScripts } from './stealth/preload-injector.js';
 
 // 不在 preload 中使用 logger，避免在 app 初始化前调用 resolveUserData
 // 使用 console 进行简单日志输出
@@ -13,8 +14,19 @@ const logger = {
   debug: (...args) => console.log('[preload:DEBUG]', ...args),
 };
 
+const exposeInMainWorld = (name, value) => {
+  try {
+    window[name] = value;
+    contextBridge.exposeInMainWorld(name, value);
+  } catch (error) {
+    window[name] = value;
+  }
+};
+
+injectStealthScripts();
+
 // 暴露日志工具到渲染进程（通过 IPC 调用主进程的 logger）
-contextBridge.exposeInMainWorld('logger', {
+exposeInMainWorld('logger', {
   info: (message, data) => ipcRenderer.invoke('ipc:execute', 'logger:info', message, data),
   warn: (message, data) => ipcRenderer.invoke('ipc:execute', 'logger:warn', message, data),
   error: (message, data) => ipcRenderer.invoke('ipc:execute', 'logger:error', message, data),
@@ -23,14 +35,14 @@ contextBridge.exposeInMainWorld('logger', {
 
 const eventListeners = new Map();
 
-contextBridge.exposeInMainWorld("pocketbaseAPI", {
+exposeInMainWorld("pocketbaseAPI", {
   url: APP_CONFIG.POCKETBASE_URL,
 });
 
 /**
  * 暴露统一的 IPC 调用接口到渲染进程
  */
-contextBridge.exposeInMainWorld('browserAPI', {
+exposeInMainWorld('browserAPI', {
   /**
    * 通用 IPC 调用接口
    * @param {string} channel - IPC 通道名称（格式：'模块:操作'）

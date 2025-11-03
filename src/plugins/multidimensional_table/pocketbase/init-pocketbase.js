@@ -4,6 +4,7 @@ import { APP_CONFIG, POCKETBASE_CONFIG } from "../../../core/constants.js";
 import { BrowserWindow, ipcMain } from "electron";
 import { resolve, resolveUserData } from "../../../utils/path-resolver.js";
 import { SecureStore } from "../../../utils/secure-store.js";
+import { WORKFLOW_TABLE_SCHEMA } from "./tables.js";
 
 
 export const createRegisterWindow = () => {
@@ -423,6 +424,59 @@ export class PocketBaseInitializer {
   }
 
   /**
+   * 通用方法：根据 schema 创建 PocketBase 数据库集合
+   * @param {Object} collectionSchema - 集合的配置 schema
+   * @param {boolean} forceRecreate - 如果集合已存在，是否删除并重新创建，默认为 true
+   * @param {string} username - 超级用户邮箱或用户名，如果不提供则从异步函数获取
+   * @param {string} password - 超级用户密码，如果不提供则从异步函数获取
+   * @returns {Promise<Object>} 返回创建的集合对象
+   */
+  async createCollectionFromSchema(collectionSchema, forceRecreate = true, username = null, password = null) {
+    ({ username, password } = await this._resolveCredentials(username, password));
+    const pb = await this.getAuthenticatedPB(username, password);
+
+    try {
+      // 检查集合是否已存在
+      this.logger.debug("检查集合是否存在...");
+      const collectionName = collectionSchema.name;
+      let existingCollection = null;
+      try {
+        existingCollection = await pb.collections.getOne(collectionName);
+        this.logger.debug(`集合 ${collectionName} 已存在`);
+
+        if (forceRecreate) {
+          // 如果设置了强制重建，则删除旧集合
+          this.logger.debug("删除旧集合...");
+          await pb.collections.delete(existingCollection.id);
+          this.logger.debug("旧集合已删除");
+          console.log(`🗑️  已删除旧的 ${collectionName} 集合`);
+        } else {
+          // 如果不强制重建，直接返回已存在的集合
+          this.logger.debug("集合已存在，跳过创建");
+          return existingCollection;
+        }
+      } catch (error) {
+        if (error.status === 404) {
+          this.logger.debug("集合不存在，将创建新集合");
+        } else {
+          throw error;
+        }
+      }
+
+      // 创建集合
+      this.logger.debug(`创建集合 ${collectionName}...`);
+
+      const collection = await pb.collections.create(collectionSchema);
+      this.logger.debug("集合创建成功", { id: collection.id, name: collection.name });
+
+      return collection;
+    } catch (error) {
+      this.logger.error(`创建集合 ${collectionSchema.name} 失败`, error);
+      throw error;
+    }
+  }
+
+  /**
    * 测试添加数据、查询数据、删除数据的功能
    * @param {Object} testData - 要测试的数据对象
    * @param {number} delay - 延迟查询的毫秒数，默认 500ms
@@ -510,8 +564,18 @@ export class PocketBaseInitializer {
   async initPocketBase(forceRecreate = false, username = null, password = null) {
     ({ username, password } = await this._resolveCredentials(username, password));
     try {
-      // 创建集合
-      const collection = await this.createCollection(forceRecreate, username, password);
+      // 创建 spread 集合
+      this.logger.debug("创建 spread 集合...");
+      const spreadCollection = await this.createCollection(forceRecreate, username, password);
+
+      // 创建 workflows 集合
+      this.logger.debug("创建 workflows 集合...");
+      const workflowCollection = await this.createCollectionFromSchema(
+        WORKFLOW_TABLE_SCHEMA,
+        forceRecreate,
+        username,
+        password
+      );
 
       // 测试数据库功能是否正常
       this.logger.debug("测试数据库功能...");
@@ -524,10 +588,15 @@ export class PocketBaseInitializer {
       this.logger.debug("数据库功能测试通过");
 
       this.logger.debug("PocketBase 初始化完成", {
-        collectionId: collection.id,
+        spreadCollectionId: spreadCollection.id,
+        workflowCollectionId: workflowCollection.id,
         adminUI: `${this.pbUrl}/_/`,
         email: username,
       });
+
+      console.log("✅ PocketBase 初始化成功");
+      console.log(`   - spread 集合: ${spreadCollection.name}`);
+      console.log(`   - workflows 集合: ${workflowCollection.name}`);
 
       return true;
     } catch (error) {

@@ -146,14 +146,58 @@
 
             <!-- 内容区 -->
             <div
-              class="flex-1 bg-gray-50 flex items-center justify-center overflow-hidden"
+              class="flex-1 bg-gray-50 flex items-center justify-center overflow-hidden p-4"
             >
-              <div v-if="view.loading" class="flex flex-col items-center gap-3">
+              <!-- 加载失败状态 -->
+              <div
+                v-if="view.loadError"
+                class="flex flex-col items-center justify-center text-center max-w-md"
+              >
+                <div
+                  class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-3"
+                >
+                  <svg
+                    class="w-8 h-8 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <h4 class="text-sm font-semibold text-red-900 mb-2">
+                  加载失败
+                </h4>
+                <p class="text-xs text-red-700 mb-2">
+                  {{ view.loadError.errorDescription }}
+                </p>
+                <p class="text-xs text-gray-500 break-all mb-3">
+                  {{ view.loadError.validatedURL }}
+                </p>
+                <button
+                  @click.stop="handleRefreshView(view.id)"
+                  class="px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors"
+                  :disabled="!view.visible"
+                >
+                  重新加载
+                </button>
+              </div>
+              <!-- 加载中状态 -->
+              <div
+                v-else-if="view.loading"
+                class="flex flex-col items-center gap-3"
+              >
                 <div
                   class="w-10 h-10 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"
                 ></div>
-                <p>加载中...</p>
+                <p class="text-sm">加载中...</p>
               </div>
+              <!-- 隐藏状态 -->
               <div
                 v-else-if="!view.visible"
                 class="flex flex-col items-center justify-center text-center text-gray-400"
@@ -164,6 +208,7 @@
                   点击标题栏的眼睛图标显示
                 </p>
               </div>
+              <!-- 正常状态 -->
               <div
                 v-else
                 class="text-center text-gray-400 flex flex-col items-center justify-center"
@@ -225,6 +270,8 @@ const CONTENT_PADDING = 12;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.1;
+const SCROLL_RETRY_LIMIT = 5;
+const SCROLL_RETRY_DELAY = 120;
 
 const visibleCount = computed(
   () => viewsStore.views.filter((view) => view.visible).length
@@ -244,6 +291,62 @@ function setViewRef(id: string, el: Element | ComponentPublicInstance | null) {
   } else {
     viewElementMap.delete(id);
   }
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function scrollToViewElement(viewId: string): Promise<boolean> {
+  const wrapper = gridWrapperRef.value;
+  if (!wrapper) return false;
+
+  await nextTick();
+  const element = viewElementMap.get(viewId);
+  if (!element) return false;
+
+  const withinWrapper = wrapper.contains(element);
+
+  try {
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest",
+    });
+  } catch (error) {
+    console.warn(`滚动到视图 ${viewId} 失败，使用回退方案:`, error);
+    if (withinWrapper) {
+      const rect = element.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const offset = rect.top - wrapperRect.top + wrapper.scrollTop - 40;
+      wrapper.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
+    } else {
+      element.scrollIntoView();
+    }
+  }
+
+  return true;
+}
+
+async function scrollToViewWithRetry(
+  viewId: string,
+  attempt = 0
+): Promise<boolean> {
+  if (!viewId) return false;
+
+  const success = await scrollToViewElement(viewId);
+  if (success) {
+    return true;
+  }
+
+  if (attempt >= SCROLL_RETRY_LIMIT) {
+    return false;
+  }
+
+  await delay(SCROLL_RETRY_DELAY);
+  return scrollToViewWithRetry(viewId, attempt + 1);
 }
 
 function handleLayoutReady() {
@@ -541,6 +644,11 @@ async function syncViews() {
 async function handleRefreshView(viewId: string) {
   const view = viewsStore.views.find((v) => v.id === viewId);
   if (!view?.backendId) return;
+  // 清除之前的错误状态
+  viewsStore.updateView(viewId, {
+    loadError: undefined,
+    loading: true,
+  });
   await ipc.reloadView(view.backendId);
   updateViewHistory(viewId);
 }
@@ -655,6 +763,68 @@ function handleFaviconError(viewId: string) {
   }
 }
 
+// 处理加载状态变化事件
+async function handleLoadingStateChanged(payload: {
+  viewId: string;
+  loading: boolean;
+  error?: {
+    errorCode: number;
+    errorDescription: string;
+    validatedURL: string;
+  } | null;
+}) {
+  const view = viewsStore.views.find((v) => v.backendId === payload.viewId);
+  if (view) {
+    const updates: Partial<ViewItem> = {
+      loading: payload.loading,
+    };
+
+    if (payload.loading) {
+      updates.loadError = undefined;
+    } else if (!payload.error) {
+      updates.loadError = undefined;
+    }
+
+    viewsStore.updateView(view.id, updates);
+
+    if (view.backendId) {
+      if (payload.loading) {
+        if (view.visible) {
+          await ipc.setViewVisible(view.backendId, true);
+        }
+      } else if (payload.error) {
+        await ipc.setViewVisible(view.backendId, false);
+      } else if (view.visible) {
+        await ipc.setViewVisible(view.backendId, true);
+      }
+    }
+  }
+}
+
+// 处理加载失败事件
+async function handleLoadFailed(payload: {
+  viewId: string;
+  errorCode: number;
+  errorDescription: string;
+  validatedURL: string;
+}) {
+  const view = viewsStore.views.find((v) => v.backendId === payload.viewId);
+  if (view) {
+    if (view.backendId) {
+      await ipc.setViewVisible(view.backendId, false);
+    }
+
+    viewsStore.updateView(view.id, {
+      loading: false,
+      loadError: {
+        errorCode: payload.errorCode,
+        errorDescription: payload.errorDescription,
+        validatedURL: payload.validatedURL,
+      },
+    });
+  }
+}
+
 function handleWindowResize() {
   updateAllVisibleViewBounds();
 }
@@ -697,6 +867,20 @@ watch(
   }
 );
 
+watch(
+  () => gridStore.pendingScrollViewId,
+  async (viewId) => {
+    if (!viewId) return;
+
+    const success = await scrollToViewWithRetry(viewId);
+    if (!success) {
+      console.warn(`未能滚动到目标视图: ${viewId}`);
+    }
+
+    gridStore.setPendingScrollViewId(null);
+  }
+);
+
 // 定期更新可见视图的历史记录状态
 let historyUpdateInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -707,6 +891,8 @@ onMounted(async () => {
   browserAPI?.on?.("views:sync", handleViewsSyncEvent);
   browserAPI?.on?.("views:title-updated", handleTitleUpdatedEvent);
   browserAPI?.on?.("views:favicon-updated", handleFaviconUpdatedEvent);
+  browserAPI?.on?.("views:loading-state-changed", handleLoadingStateChanged);
+  browserAPI?.on?.("views:load-failed", handleLoadFailed);
 
   // 每 2 秒更新一次历史记录状态
   historyUpdateInterval = setInterval(() => {
@@ -719,6 +905,16 @@ onMounted(async () => {
 
   // 重新挂载时，更新所有可见视图的位置并显示
   await nextTick();
+
+  const pendingScrollViewId = gridStore.pendingScrollViewId;
+  if (pendingScrollViewId) {
+    const scrolled = await scrollToViewWithRetry(pendingScrollViewId);
+    if (!scrolled) {
+      console.warn(`进入网格模式时未能定位到视图: ${pendingScrollViewId}`);
+    }
+    gridStore.setPendingScrollViewId(null);
+  }
+
   viewsStore.views.forEach(async (view) => {
     if (view.visible && view.backendId) {
       // 先计算并设置 bounds，再显示视图
@@ -736,6 +932,8 @@ onUnmounted(async () => {
   browserAPI?.off?.("views:sync", handleViewsSyncEvent);
   browserAPI?.off?.("views:title-updated", handleTitleUpdatedEvent);
   browserAPI?.off?.("views:favicon-updated", handleFaviconUpdatedEvent);
+  browserAPI?.off?.("views:loading-state-changed", handleLoadingStateChanged);
+  browserAPI?.off?.("views:load-failed", handleLoadFailed);
 
   if (historyUpdateInterval) {
     clearInterval(historyUpdateInterval);

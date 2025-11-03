@@ -139,6 +139,7 @@
             placeholder="搜索或输入网址"
             @keydown.enter="handleNavigate"
             @focus="handleAddressBarFocus"
+            @blur="handleAddressBarBlur"
           />
         </div>
       </div>
@@ -174,6 +175,73 @@
         <Globe class="w-20 h-20 text-gray-300 mb-4" />
         <p class="text-lg text-gray-500">暂无打开的标签页</p>
         <p class="text-sm text-gray-400 mt-2">点击 "+" 按钮创建新标签页</p>
+      </div>
+
+      <!-- 加载失败状态 -->
+      <div
+        v-else-if="activeView.loadError"
+        class="absolute inset-0 flex items-center justify-center bg-white p-8"
+      >
+        <div
+          class="max-w-2xl w-full bg-red-50 border border-red-200 rounded-lg p-8 shadow-sm"
+        >
+          <div class="flex items-start gap-4">
+            <!-- 错误图标 -->
+            <div
+              class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center shrink-0"
+            >
+              <svg
+                class="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+
+            <!-- 错误信息 -->
+            <div class="flex-1 min-w-0">
+              <h3 class="text-lg font-semibold text-red-900 mb-2">
+                无法加载网页
+              </h3>
+              <p class="text-sm text-red-700 mb-3">
+                {{ activeView.loadError.errorDescription }}
+              </p>
+              <div class="bg-white border border-red-200 rounded p-3 mb-4">
+                <p class="text-xs text-gray-500 mb-1">请求的网址:</p>
+                <p class="text-sm text-gray-900 break-all font-mono">
+                  {{ activeView.loadError.validatedURL }}
+                </p>
+              </div>
+              <div class="text-xs text-gray-600 mb-4">
+                错误代码: {{ activeView.loadError.errorCode }}
+              </div>
+
+              <!-- 操作按钮 -->
+              <div class="flex gap-3">
+                <button
+                  @click="handleRefresh"
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                >
+                  重新加载
+                </button>
+                <button
+                  @click="handleGoBack"
+                  v-if="canGoBack"
+                  class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  返回上一页
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 加载状态 -->
@@ -214,6 +282,7 @@ const tabContainerRef = ref<HTMLElement | null>(null);
 const addressBarRef = ref<HTMLInputElement | null>(null);
 const addressBarValue = ref("");
 const showAddressBar = ref(true);
+const isAddressBarFocused = ref(false); // 地址栏是否处于聚焦状态
 
 const browserAPI = (window as any)?.browserAPI;
 
@@ -441,8 +510,9 @@ async function updateNavigationState() {
       canGoBack.value = info.data.canGoBack;
       canGoForward.value = info.data.canGoForward;
 
-      // 更新地址栏
-      if (info.data.url) {
+      // 只在地址栏未聚焦时更新地址栏
+      // 避免覆盖用户正在输入的内容
+      if (info.data.url && !isAddressBarFocused.value) {
         addressBarValue.value = info.data.url;
       }
 
@@ -515,8 +585,8 @@ async function handleAddTab() {
     url: "https://www.baidu.com",
     x: 0,
     y: 0,
-    w: 12,
-    h: 6,
+    w: 4,
+    h: 4,
     visible: false,
     backendId: null,
   });
@@ -590,16 +660,53 @@ async function handleNavigate() {
   let url = addressBarValue.value.trim();
   if (!url) return;
 
-  // 简单的URL处理
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    // 如果包含点号,视为域名
-    if (url.includes(".")) {
+  // URL处理逻辑
+  if (
+    !url.startsWith("http://") &&
+    !url.startsWith("https://") &&
+    !url.startsWith("file://")
+  ) {
+    const windowsDrivePattern = /^[a-zA-Z]:([\\\/]|$)/;
+    const windowsNetworkPattern = /^\\\\/;
+    const unixPathPattern = /^\//;
+
+    const isWindowsPath =
+      windowsDrivePattern.test(url) || windowsNetworkPattern.test(url);
+    const isUnixPath = unixPathPattern.test(url);
+
+    if (isWindowsPath || isUnixPath) {
+      let filePath = url;
+
+      // 处理 Windows 网络共享路径 \\server\share -> //server/share
+      if (windowsNetworkPattern.test(filePath)) {
+        filePath = filePath.replace(/^\\\\/, "//");
+      }
+
+      // 将反斜杠统一为正斜杠
+      filePath = filePath.replace(/\\/g, "/");
+
+      // Windows 驱动器路径确保为 /C:/...
+      if (windowsDrivePattern.test(filePath) && !filePath.startsWith("/")) {
+        filePath = "/" + filePath;
+      }
+
+      // Unix 路径直接拼接
+      url = `file://${filePath.startsWith("/") ? "" : "/"}${filePath}`;
+    } else if (url.includes(".")) {
       url = "https://" + url;
     } else {
-      // 否则使用搜索引擎
       url = `https://www.baidu.com/s?wd=${encodeURIComponent(url)}`;
     }
   }
+
+  // 同步地址栏显示最终的目标 URL
+  addressBarValue.value = url;
+
+  // 清除之前的错误状态
+  viewsStore.updateView(activeView.value.id, {
+    loadError: undefined,
+    loading: true,
+  });
 
   const result = await ipc.loadURL(activeView.value.backendId, url);
   if (result.success) {
@@ -613,12 +720,21 @@ async function handleNavigate() {
     await updateNavigationState();
   } else {
     console.error("导航失败:", result.error);
+    viewsStore.updateView(activeView.value.id, { loading: false });
   }
 }
 
 // 地址栏聚焦时全选
 function handleAddressBarFocus() {
+  isAddressBarFocused.value = true;
   addressBarRef.value?.select();
+}
+
+// 地址栏失焦
+function handleAddressBarBlur() {
+  isAddressBarFocused.value = false;
+  // 失焦时同步一次最新的URL到地址栏
+  updateNavigationState();
 }
 
 // 后退
@@ -642,6 +758,11 @@ async function handleGoForward() {
 // 刷新
 async function handleRefresh() {
   if (!activeView.value?.backendId) return;
+  // 清除之前的错误状态
+  viewsStore.updateView(activeView.value.id, {
+    loadError: undefined,
+    loading: true,
+  });
   await ipc.reloadView(activeView.value.backendId);
   await updateNavigationState();
 }
@@ -904,8 +1025,8 @@ async function syncViews() {
         url: view.url,
         x: 0,
         y: 0,
-        w: 12,
-        h: 6,
+        w: 4,
+        h: 4,
         visible: false,
         backendId: view.id,
       });
@@ -982,6 +1103,74 @@ function handleFaviconError(viewId: string) {
   }
 }
 
+// 处理加载状态变化事件
+async function handleLoadingStateChanged(payload: {
+  viewId: string;
+  loading: boolean;
+  error?: {
+    errorCode: number;
+    errorDescription: string;
+    validatedURL: string;
+  } | null;
+}) {
+  const view = viewsStore.views.find((v) => v.backendId === payload.viewId);
+  if (view) {
+    const updates: Partial<ViewItem> = {
+      loading: payload.loading,
+    };
+
+    if (payload.loading) {
+      // 开始加载时清除错误提示
+      updates.loadError = undefined;
+    } else if (!payload.error) {
+      // 加载成功时清空错误信息
+      updates.loadError = undefined;
+    }
+
+    viewsStore.updateView(view.id, updates);
+
+    if (payload.loading) {
+      if (view.backendId && view.selected) {
+        await ipc.setViewVisible(view.backendId, true);
+      }
+    } else if (payload.error) {
+      if (view.backendId) {
+        await ipc.setViewVisible(view.backendId, false);
+      }
+    } else if (!payload.error && view.backendId && view.selected) {
+      await ipc.setViewVisible(view.backendId, true);
+    }
+  }
+}
+
+// 处理加载失败事件
+async function handleLoadFailed(payload: {
+  viewId: string;
+  errorCode: number;
+  errorDescription: string;
+  validatedURL: string;
+}) {
+  const view = viewsStore.views.find((v) => v.backendId === payload.viewId);
+  if (view) {
+    if (view.backendId) {
+      await ipc.setViewVisible(view.backendId, false);
+    }
+
+    viewsStore.updateView(view.id, {
+      loading: false,
+      loadError: {
+        errorCode: payload.errorCode,
+        errorDescription: payload.errorDescription,
+        validatedURL: payload.validatedURL,
+      },
+    });
+
+    if (payload.validatedURL) {
+      addressBarValue.value = payload.validatedURL;
+    }
+  }
+}
+
 // 监听活跃视图变化
 watch(activeView, async (newView) => {
   if (newView) {
@@ -1004,6 +1193,8 @@ onMounted(async () => {
   browserAPI?.on?.("views:title-updated", handleTitleUpdatedEvent);
   browserAPI?.on?.("views:favicon-updated", handleFaviconUpdatedEvent);
   browserAPI?.on?.("ui:tab-menu-action", handleTabMenuAction);
+  browserAPI?.on?.("views:loading-state-changed", handleLoadingStateChanged);
+  browserAPI?.on?.("views:load-failed", handleLoadFailed);
 
   // 监听标签页容器大小变化
   if (tabContainerRef.value) {
@@ -1074,6 +1265,8 @@ onUnmounted(async () => {
   browserAPI?.off?.("views:title-updated", handleTitleUpdatedEvent);
   browserAPI?.off?.("views:favicon-updated", handleFaviconUpdatedEvent);
   browserAPI?.off?.("ui:tab-menu-action", handleTabMenuAction);
+  browserAPI?.off?.("views:loading-state-changed", handleLoadingStateChanged);
+  browserAPI?.off?.("views:load-failed", handleLoadFailed);
 
   if (navigationUpdateInterval) {
     clearInterval(navigationUpdateInterval);

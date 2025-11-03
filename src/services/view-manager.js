@@ -7,6 +7,7 @@ import { createLogger } from '../core/logger.js';
 import { VIEW_CONFIG } from '../core/constants.js';
 import { setupWindowShortcuts } from '../utils/window-shortcuts.js';
 import { resolve } from '../utils/path-resolver.js';
+import { attachWebContentsStealth, createStealthUserAgent } from '../stealth/index.js';
 
 const logger = createLogger('services/view-manager');
 
@@ -64,6 +65,7 @@ class ViewManager {
         height: VIEW_CONFIG.DEFAULT_BOUNDS.HEIGHT,
       },
       visible: options.visible !== false,
+      hasLoadError: false, // 标记是否发生了加载错误
     };
 
     // 创建 WebContentsView
@@ -71,7 +73,8 @@ class ViewManager {
       webPreferences: {
         sandbox: false,
         preload: resolve('preload.js'),
-        contextIsolation: true,
+        // contextIsolation: true,
+        contextIsolation: false,
         nodeIntegration: false,
       },
     });
@@ -113,6 +116,12 @@ class ViewManager {
       rebindOnLoad: false, // 由外部手动在 did-finish-load 中重新绑定
     });
 
+    attachWebContentsStealth(view.webContents);
+
+    const ua = createStealthUserAgent(view.webContents.getUserAgent());
+    view.webContents.setUserAgent(ua);
+    logger.info('设置用户代理', { ua });
+
     // 监听页面标题更新
     view.webContents.on('page-title-updated', (_event, title) => {
       config.title = title;
@@ -141,16 +150,93 @@ class ViewManager {
       }
     });
 
+    // 监听页面开始加载
+    view.webContents.on('did-start-loading', () => {
+      logger.debug(`页面开始加载: ${viewId}`);
+      // 清除错误标志
+      config.hasLoadError = false;
+      // 确保视图在加载期间可见
+      config.visible = true;
+      view.setVisible(true);
+      // 通知主渲染进程开始加载
+      if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+        this.mainView.webContents.send('views:loading-state-changed', {
+          viewId,
+          loading: true,
+        });
+      }
+    });
+
     // 监听页面加载完成，重新绑定快捷键
     view.webContents.on('did-finish-load', () => {
       logger.debug(`页面加载完成，快捷键已重新绑定: ${viewId}`);
       this.baseWindow.contentView.addChildView(view);
+
+      if (config.hasLoadError) {
+        logger.warn(`页面加载失败，保持隐藏状态: ${viewId}`);
+        view.setVisible(false);
+        config.visible = false;
+        return;
+      }
+
       // 如果是第一个视图或设置为可见，则自动设为活动视图
       if (this.views.size === 1 || config.visible) {
         this.setActiveView(viewId);
       } else {
         // 否则隐藏该视图
         view.setVisible(false);
+      }
+
+      if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+        this.mainView.webContents.send('views:loading-state-changed', {
+          viewId,
+          loading: false,
+          error: null,
+        });
+      }
+    });
+
+    // 监听页面加载失败
+    view.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      // 只处理主框架的加载失败（忽略iframe等子框架）
+      if (!isMainFrame) return;
+
+      // 忽略一些可以忽略的错误
+      // -3: ERR_ABORTED (用户取消加载)
+      // -27: ERR_BLOCKED_BY_CLIENT (被客户端拦截，通常是广告拦截)
+      const ignoredErrors = [-3, -27];
+      if (ignoredErrors.includes(errorCode)) {
+        logger.debug(`忽略的加载错误: ${viewId}`, { errorCode, errorDescription });
+        return;
+      }
+
+      logger.error(`页面加载失败: ${viewId}`, {
+        errorCode,
+        errorDescription,
+        validatedURL
+      });
+
+      // 设置错误标志，防止 did-finish-load 覆盖错误状态
+      config.hasLoadError = true;
+
+      // 通知主渲染进程加载失败
+      if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+        this.mainView.webContents.send('views:load-failed', {
+          viewId,
+          errorCode,
+          errorDescription,
+          validatedURL,
+        });
+        // 同时更新加载状态
+        this.mainView.webContents.send('views:loading-state-changed', {
+          viewId,
+          loading: false,
+          error: {
+            errorCode,
+            errorDescription,
+            validatedURL,
+          },
+        });
       }
     });
 

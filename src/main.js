@@ -1,7 +1,7 @@
 // src/main.js
 // Electron 主进程入口
 
-import { app, BaseWindow, WebContentsView, Menu } from 'electron';
+import { app, BaseWindow, WebContentsView, Menu, session } from 'electron';
 import { createLogger } from './core/logger.js';
 import { ipcManager } from './core/ipc-manager.js';
 import { APP_CONFIG, IPC_CONFIG, WINDOW_CONFIG } from './core/constants.js';
@@ -19,6 +19,7 @@ import { setupWindowShortcuts } from './utils/window-shortcuts.js';
 import { pluginManager } from './plugins/plugin-manager.js';
 import { resolve } from './utils/path-resolver.js';
 import { cleanupAllProcesses } from './utils/process-utils.js';
+import { applyStealthAppConfig, configureSessionStealth, attachWebContentsStealth } from './stealth/index.js';
 
 const logger = createLogger('main');
 
@@ -26,6 +27,9 @@ let mainWindow;
 let mainView;
 let viewManager;
 let httpServer;
+
+
+applyStealthAppConfig(app);
 
 
 /**
@@ -62,6 +66,8 @@ async function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  attachWebContentsStealth(mainView.webContents);
 
   // 立即设置缩放因子（在加载页面之前）
   mainView.webContents.setZoomFactor(1.0);
@@ -153,11 +159,13 @@ async function createWindow() {
   logger.info('==================== 应用初始化完成 ====================');
 }
 
+
 /**
  * Electron 应用生命周期
  */
 app.whenReady().then(async () => {
   logger.info('Electron 应用就绪');
+  configureSessionStealth(session.defaultSession);
   await createWindow();
 });
 
