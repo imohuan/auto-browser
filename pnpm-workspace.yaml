@@ -1,5 +1,4 @@
 packages:
-  - 多维表格
   - src/renderer
 
 onlyBuiltDependencies:
