@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 更新视图边界节点
  * 通过 HTTP 调用 views:updateBounds channel
  */
-export class ViewsUpdateBoundsNode extends BaseNode {
+export class ViewsUpdateBoundsNode extends HttpFlowNode {
   type = "http:views:updateBounds";
   label = "更新视图边界";
   description = "通过 HTTP API 更新视图位置和大小";
@@ -12,28 +12,14 @@ export class ViewsUpdateBoundsNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "bounds",
-        name: "边界",
-        type: "object",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
+      { name: "bounds", type: "object", description: "边界", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "bounds",
-        name: "更新后的边界",
-        type: "object",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
@@ -41,29 +27,18 @@ export class ViewsUpdateBoundsNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const bounds = inputs.bounds || config.bounds;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!bounds) {
-      throw new Error("必须提供边界");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const bounds = this.getInput(inputs, "bounds");
 
-    context.logger.debug("更新视图边界", { viewId, bounds });
+    this.logger.debug("更新视图边界", { viewId, bounds });
 
-    const response = await context.http.invoke("views:updateBounds", viewId, bounds);
-
-    return {
-      outputs: {
-        bounds: response.result?.bounds || response.result,
-      },
-      raw: response.result || response,
-      summary: "已更新视图边界",
-    };
+    return await this.invoke("views:updateBounds", viewId, bounds);
   }
 }
 

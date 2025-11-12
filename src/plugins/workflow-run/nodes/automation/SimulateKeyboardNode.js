@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 键盘模拟节点
  * 通过 HTTP 调用 automation:simulateKeyboard channel
  */
-export class AutomationSimulateKeyboardNode extends BaseNode {
+export class AutomationSimulateKeyboardNode extends HttpFlowNode {
   type = "http:automation:simulateKeyboard";
   label = "模拟键盘";
   description = "通过 HTTP API 模拟键盘输入";
@@ -55,31 +55,20 @@ export class AutomationSimulateKeyboardNode extends BaseNode {
     };
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const keys = inputs.keys || config.keys;
-    const selector = inputs.selector !== undefined ? inputs.selector : config.selector;
-    const delay = inputs.delay !== undefined ? inputs.delay : config.delay !== undefined ? config.delay : 0;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!keys) {
-      throw new Error("必须提供按键");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const keys = this.getInput(inputs, "keys");
+    const selector = this.getInput(inputs, "selector");
+    const delay = this.getInput(inputs, "delay");
 
-    context.logger.debug("模拟键盘输入", { viewId, keys, selector, delay });
+    this.logger.debug("模拟键盘输入", { viewId, keys, selector, delay });
 
-    const response = await context.http.invoke("automation:simulateKeyboard", viewId, keys, selector || null, delay);
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `已模拟按键: ${keys}`,
-    };
+    return await this.invoke("automation:simulateKeyboard", viewId, keys, selector || null, delay ?? 0);
   }
 }
 

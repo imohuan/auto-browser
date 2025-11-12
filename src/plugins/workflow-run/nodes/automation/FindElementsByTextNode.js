@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 查找元素节点
  * 通过 HTTP 调用 automation:findElementsByText channel
  */
-export class AutomationFindElementsByTextNode extends BaseNode {
+export class AutomationFindElementsByTextNode extends HttpFlowNode {
   type = "http:automation:findElementsByText";
   label = "查找元素";
   description = "通过 HTTP API 查找包含指定文本的元素";
@@ -76,17 +76,9 @@ export class AutomationFindElementsByTextNode extends BaseNode {
       throw new Error("必须提供文本查询");
     }
 
-    context.logger.debug("查找元素", { viewId, textQuery, options });
+    this.logger.debug("查找元素", { viewId, textQuery, options });
 
-    const response = await context.http.invoke("automation:findElementsByText", viewId, textQuery, options);
-
-    return {
-      outputs: {
-        elements: response.result?.elements || [],
-      },
-      raw: response.result || response,
-      summary: `已找到 ${response.result?.elements?.length || 0} 个元素`,
-    };
+    return await this.invoke("automation:findElementsByText", viewId, textQuery, options);
   }
 }
 

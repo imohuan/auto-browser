@@ -53,11 +53,11 @@ export default class CalculatorPlugin extends BasePlugin {
     this.logger.info("初始化计算器插件...");
 
     // 获取工作流节点元数据（如果工作流插件已加载）
-    const workflowPlugin = pluginManager.getPlugin("workflow-run");
-    if (workflowPlugin) {
-      const nodeMetadata = workflowPlugin.getAllNodeMetadata();
-      this.logger.debug(JSON.stringify(nodeMetadata, null, 2));
-    }
+    // const workflowPlugin = pluginManager.getPlugin("workflow-run");
+    // if (workflowPlugin) {
+    //   const nodeMetadata = workflowPlugin.getAllNodeMetadata();
+    //   this.logger.debug(JSON.stringify(nodeMetadata, null, 2));
+    // }
 
     // 1. 获取 PocketBase 凭证（只获取一次）
     this.credentials = await this.pbInitializer.getCredentials();

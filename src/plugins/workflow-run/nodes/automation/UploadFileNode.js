@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 文件上传节点
  * 通过 HTTP 调用 automation:uploadFile channel
  */
-export class AutomationUploadFileNode extends BaseNode {
+export class AutomationUploadFileNode extends HttpFlowNode {
   type = "http:automation:uploadFile";
   label = "上传文件";
   description = "通过 HTTP API 上传文件到文件输入框";
@@ -12,69 +12,31 @@ export class AutomationUploadFileNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "selector",
-        name: "选择器",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "filePath",
-        name: "文件路径",
-        type: "string",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
+      { name: "selector", type: "string", description: "选择器", required: true },
+      { name: "filePath", type: "string", description: "文件路径", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "result",
-        name: "结果",
-        type: "any",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
-  getDefaultConfig() {
-    return {};
-  }
-
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const selector = inputs.selector || config.selector;
-    const filePath = inputs.filePath || config.filePath;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!selector) {
-      throw new Error("必须提供选择器");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const selector = this.getInput(inputs, "selector");
+    const filePath = this.getInput(inputs, "filePath");
 
-    if (!filePath) {
-      throw new Error("必须提供文件路径");
-    }
+    this.logger.debug("上传文件", { viewId, selector, filePath });
 
-    context.logger.debug("上传文件", { viewId, selector, filePath });
-
-    const response = await context.http.invoke("automation:uploadFile", viewId, selector, filePath);
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `已上传文件: ${filePath}`,
-    };
+    return await this.invoke("automation:uploadFile", viewId, selector, filePath);
   }
 }
 

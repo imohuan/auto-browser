@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 获取元素文本节点
  * 通过 HTTP 调用 automation:getText channel
  */
-export class AutomationGetTextNode extends BaseNode {
+export class AutomationGetTextNode extends HttpFlowNode {
   type = "http:automation:getText";
   label = "获取元素文本";
   description = "通过 HTTP API 获取元素的文本内容";
@@ -12,58 +12,29 @@ export class AutomationGetTextNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "selector",
-        name: "选择器",
-        type: "string",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
+      { name: "selector", type: "string", description: "选择器", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "text",
-        name: "文本内容",
-        type: "string",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
-  getDefaultConfig() {
-    return {};
-  }
-
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const selector = inputs.selector || config.selector;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!selector) {
-      throw new Error("必须提供选择器");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const selector = this.getInput(inputs, "selector");
 
-    context.logger.debug("获取元素文本", { viewId, selector });
+    this.logger.debug("获取元素文本", { viewId, selector });
 
-    const response = await context.http.invoke("automation:getText", viewId, selector);
-
-    return {
-      outputs: {
-        text: response.result?.text || "",
-      },
-      raw: response.result || response,
-      summary: `已获取文本，长度: ${response.result?.text?.length || 0} 字符`,
-    };
+    return await this.invoke("automation:getText", viewId, selector);
   }
 }
 

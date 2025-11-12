@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 创建视图节点
  * 通过 HTTP 调用 views:create channel
  */
-export class ViewsCreateNode extends BaseNode {
+export class ViewsCreateNode extends HttpFlowNode {
   type = "http:views:create";
   label = "创建视图";
   description = "通过 HTTP API 创建一个新的浏览器视图";
@@ -12,77 +12,39 @@ export class ViewsCreateNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "title",
-        name: "标题",
-        type: "string",
-        required: false,
-      },
-      {
-        id: "url",
-        name: "URL",
-        type: "string",
-        required: false,
-      },
-      {
-        id: "bounds",
-        name: "位置和大小",
-        type: "object",
-        required: false,
-      },
-      {
-        id: "visible",
-        name: "是否可见",
-        type: "boolean",
-        required: false,
-      },
+      { name: "title", type: "string", description: "标题", required: false },
+      { name: "url", type: "string", description: "URL", required: false },
+      { name: "bounds", type: "object", description: "位置和大小", required: false },
+      { name: "visible", type: "boolean", description: "是否可见", required: false },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
-  getDefaultConfig() {
-    return {
-      visible: true,
-    };
-  }
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
+    }
 
-  async execute(config, inputs, workflowContext) {
+    const title = this.getInput(inputs, "title");
+    const url = this.getInput(inputs, "url");
+    const bounds = this.getInput(inputs, "bounds");
+    const visible = this.getInput(inputs, "visible");
+
     const options = {};
+    if (title !== undefined) options.title = title;
+    if (url !== undefined) options.url = url;
+    if (bounds !== undefined) options.bounds = bounds;
+    if (visible !== undefined) options.visible = visible;
 
-    if (inputs.title !== undefined || config.title !== undefined) {
-      options.title = inputs.title || config.title;
-    }
-    if (inputs.url !== undefined || config.url !== undefined) {
-      options.url = inputs.url || config.url;
-    }
-    if (inputs.bounds !== undefined || config.bounds !== undefined) {
-      options.bounds = inputs.bounds || config.bounds;
-    }
-    if (inputs.visible !== undefined || config.visible !== undefined) {
-      options.visible = inputs.visible !== undefined ? inputs.visible : config.visible !== undefined ? config.visible : true;
-    }
+    this.logger.debug("创建视图", { options });
 
-    context.logger.debug("创建视图", { options });
-
-    // 调用 HTTP API
-    const response = await context.http.invoke("views:create", options);
-
-    return {
-      outputs: {
-        viewId: response.result?.viewId,
-      },
-      raw: response.result || response,
-      summary: `已创建视图: ${response.result?.viewId || "未知"}`,
-    };
+    return await this.invoke("views:create", options);
   }
 }
 

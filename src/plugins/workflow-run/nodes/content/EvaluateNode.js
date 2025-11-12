@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 执行脚本节点
  * 通过 HTTP 调用 content:evaluate channel
  */
-export class ContentEvaluateNode extends BaseNode {
+export class ContentEvaluateNode extends HttpFlowNode {
   type = "http:content:evaluate";
   label = "执行脚本";
   description = "通过 HTTP API 在页面上下文中执行 JavaScript 并返回结果";
@@ -41,29 +41,18 @@ export class ContentEvaluateNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const script = inputs.script || config.script;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!script) {
-      throw new Error("必须提供脚本");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const script = this.getInput(inputs, "script");
 
-    context.logger.debug("执行脚本", { viewId, scriptLength: script?.length });
+    this.logger.debug("执行脚本", { viewId, scriptLength: script?.length });
 
-    const response = await context.http.invoke("content:evaluate", viewId, script);
-
-    return {
-      outputs: {
-        result: response.result?.result || response.result,
-      },
-      raw: response.result || response,
-      summary: "脚本执行完成",
-    };
+    return await this.invoke("content:evaluate", viewId, script);
   }
 }
 

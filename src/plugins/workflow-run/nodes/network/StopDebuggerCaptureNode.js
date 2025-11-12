@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 停止 Debugger 网络捕获节点
  * 通过 HTTP 调用 network:stopDebuggerCapture channel
  */
-export class NetworkStopDebuggerCaptureNode extends BaseNode {
+export class NetworkStopDebuggerCaptureNode extends HttpFlowNode {
   type = "http:network:stopDebuggerCapture";
   label = "停止Debugger捕获";
   description = "通过 HTTP API 停止 Debugger 网络捕获并返回结果（含响应体）";
@@ -12,22 +12,13 @@ export class NetworkStopDebuggerCaptureNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "result",
-        name: "捕获结果",
-        type: "any",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
@@ -35,24 +26,17 @@ export class NetworkStopDebuggerCaptureNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    context.logger.debug("停止Debugger捕获", { viewId });
+    const viewId = this.getInput(inputs, "viewId");
 
-    const response = await context.http.invoke("network:stopDebuggerCapture", viewId);
+    this.logger.debug("停止Debugger捕获", { viewId });
 
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `捕获完成，共 ${response.result?.requestCount || 0} 个请求`,
-    };
+    return await this.invoke("network:stopDebuggerCapture", viewId);
   }
 }
 

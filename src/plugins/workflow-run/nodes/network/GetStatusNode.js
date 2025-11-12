@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 获取网络监控状态节点
  * 通过 HTTP 调用 network:getStatus channel
  */
-export class NetworkGetStatusNode extends BaseNode {
+export class NetworkGetStatusNode extends HttpFlowNode {
   type = "http:network:getStatus";
   label = "获取网络状态";
   description = "通过 HTTP API 获取网络监控状态";
@@ -12,22 +12,13 @@ export class NetworkGetStatusNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "status",
-        name: "监控状态",
-        type: "object",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
@@ -35,24 +26,17 @@ export class NetworkGetStatusNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    context.logger.debug("获取网络状态", { viewId });
+    const viewId = this.getInput(inputs, "viewId");
 
-    const response = await context.http.invoke("network:getStatus", viewId);
+    this.logger.debug("获取网络状态", { viewId });
 
-    return {
-      outputs: {
-        status: response.result?.data || response.result,
-      },
-      raw: response.result || response,
-      summary: `WebRequest: ${response.result?.data?.webRequestCapturing ? "运行中" : "已停止"}, Debugger: ${response.result?.data?.debuggerCapturing ? "运行中" : "已停止"}`,
-    };
+    return await this.invoke("network:getStatus", viewId);
   }
 }
 

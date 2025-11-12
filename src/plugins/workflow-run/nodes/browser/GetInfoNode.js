@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 获取页面信息节点
  * 通过 HTTP 调用 browser:getInfo channel
  */
-export class BrowserGetInfoNode extends BaseNode {
+export class BrowserGetInfoNode extends HttpFlowNode {
   type = "http:browser:getInfo";
   label = "获取页面信息";
   description = "通过 HTTP API 获取页面信息";
@@ -12,22 +12,13 @@ export class BrowserGetInfoNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "info",
-        name: "页面信息",
-        type: "object",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
@@ -35,24 +26,17 @@ export class BrowserGetInfoNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    context.logger.debug("获取页面信息", { viewId });
+    const viewId = this.getInput(inputs, "viewId");
 
-    const response = await context.http.invoke("browser:getInfo", viewId);
+    this.logger.debug("获取页面信息", { viewId });
 
-    return {
-      outputs: {
-        info: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `页面: ${response.result?.title || response.result?.url || "未知"}`,
-    };
+    return await this.invoke("browser:getInfo", viewId);
   }
 }
 

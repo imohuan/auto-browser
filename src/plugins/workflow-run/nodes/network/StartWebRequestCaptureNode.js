@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 启动 WebRequest 网络捕获节点
  * 通过 HTTP 调用 network:startWebRequestCapture channel
  */
-export class NetworkStartWebRequestCaptureNode extends BaseNode {
+export class NetworkStartWebRequestCaptureNode extends HttpFlowNode {
   type = "http:network:startWebRequestCapture";
   label = "启动WebRequest捕获";
   description = "通过 HTTP API 启动 WebRequest 网络捕获（不含响应体）";
@@ -12,80 +12,37 @@ export class NetworkStartWebRequestCaptureNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "maxCaptureTime",
-        name: "最大捕获时间",
-        type: "number",
-        required: false,
-      },
-      {
-        id: "inactivityTimeout",
-        name: "无活动超时时间",
-        type: "number",
-        required: false,
-      },
-      {
-        id: "includeStatic",
-        name: "包含静态资源",
-        type: "boolean",
-        required: false,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
+      { name: "maxCaptureTime", type: "number", description: "最大捕获时间", required: false },
+      { name: "inactivityTimeout", type: "number", description: "无活动超时时间", required: false },
+      { name: "includeStatic", type: "boolean", description: "包含静态资源", required: false },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "result",
-        name: "结果",
-        type: "any",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
-  getDefaultConfig() {
-    return {
-      maxCaptureTime: 180000,
-      inactivityTimeout: 60000,
-      includeStatic: false,
-    };
-  }
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
+    }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
+    const viewId = this.getInput(inputs, "viewId");
     const options = {};
+    const maxCaptureTime = this.getInput(inputs, "maxCaptureTime");
+    const inactivityTimeout = this.getInput(inputs, "inactivityTimeout");
+    const includeStatic = this.getInput(inputs, "includeStatic");
+    if (maxCaptureTime !== undefined) options.maxCaptureTime = maxCaptureTime;
+    if (inactivityTimeout !== undefined) options.inactivityTimeout = inactivityTimeout;
+    if (includeStatic !== undefined) options.includeStatic = includeStatic;
 
-    if (inputs.maxCaptureTime !== undefined || config.maxCaptureTime !== undefined) {
-      options.maxCaptureTime = inputs.maxCaptureTime || config.maxCaptureTime;
-    }
-    if (inputs.inactivityTimeout !== undefined || config.inactivityTimeout !== undefined) {
-      options.inactivityTimeout = inputs.inactivityTimeout || config.inactivityTimeout;
-    }
-    if (inputs.includeStatic !== undefined || config.includeStatic !== undefined) {
-      options.includeStatic = inputs.includeStatic !== undefined ? inputs.includeStatic : config.includeStatic;
-    }
+    this.logger.debug("启动WebRequest捕获", { viewId, options });
 
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
-    }
-
-    context.logger.debug("启动WebRequest捕获", { viewId, options });
-
-    const response = await context.http.invoke("network:startWebRequestCapture", viewId, options);
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: "已启动 WebRequest 网络捕获",
-    };
+    return await this.invoke("network:startWebRequestCapture", viewId, options);
   }
 }
 

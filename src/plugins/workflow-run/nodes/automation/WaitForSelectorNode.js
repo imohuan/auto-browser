@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 等待选择器节点
  * 通过 HTTP 调用 automation:waitForSelector channel
  */
-export class AutomationWaitForSelectorNode extends BaseNode {
+export class AutomationWaitForSelectorNode extends HttpFlowNode {
   type = "http:automation:waitForSelector";
   label = "等待选择器";
   description = "通过 HTTP API 等待指定元素出现";
@@ -62,17 +62,9 @@ export class AutomationWaitForSelectorNode extends BaseNode {
       throw new Error("必须提供选择器");
     }
 
-    context.logger.debug("等待选择器出现", { viewId, selector, timeout });
+    this.logger.debug("等待选择器出现", { viewId, selector, timeout });
 
-    const response = await context.http.invoke("automation:waitForSelector", viewId, selector, timeout);
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `已等待元素出现: ${selector}`,
-    };
+    return await this.invoke("automation:waitForSelector", viewId, selector, timeout);
   }
 }
 

@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 提取页面元数据节点
  * 通过 HTTP 调用 content:extractMetadata channel
  */
-export class ContentExtractMetadataNode extends BaseNode {
+export class ContentExtractMetadataNode extends HttpFlowNode {
   type = "http:content:extractMetadata";
   label = "提取页面元数据";
   description = "通过 HTTP API 提取页面的元数据";
@@ -12,22 +12,13 @@ export class ContentExtractMetadataNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "metadata",
-        name: "元数据",
-        type: "object",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
@@ -35,24 +26,17 @@ export class ContentExtractMetadataNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    context.logger.debug("提取页面元数据", { viewId });
+    const viewId = this.getInput(inputs, "viewId");
 
-    const response = await context.http.invoke("content:extractMetadata", viewId);
+    this.logger.debug("提取页面元数据", { viewId });
 
-    return {
-      outputs: {
-        metadata: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `已提取元数据: ${response.result?.title || "未知标题"}`,
-    };
+    return await this.invoke("content:extractMetadata", viewId);
   }
 }
 

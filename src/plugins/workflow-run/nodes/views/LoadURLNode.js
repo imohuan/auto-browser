@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 加载URL节点
  * 通过 HTTP 调用 views:loadURL channel
  */
-export class ViewsLoadURLNode extends BaseNode {
+export class ViewsLoadURLNode extends HttpFlowNode {
   type = "http:views:loadURL";
   label = "加载URL";
   description = "通过 HTTP API 在视图中加载 URL";
@@ -13,15 +13,15 @@ export class ViewsLoadURLNode extends BaseNode {
   defineInputs() {
     return [
       {
-        id: "viewId",
-        name: "视图ID",
+        name: "viewId",
         type: "string",
+        description: "视图ID",
         required: true,
       },
       {
-        id: "url",
-        name: "URL",
+        name: "url",
         type: "string",
+        description: "URL",
         required: true,
       },
     ];
@@ -30,40 +30,25 @@ export class ViewsLoadURLNode extends BaseNode {
   defineOutputs() {
     return [
       {
-        id: "result",
-        name: "结果",
+        name: "result",
         type: "any",
+        description: "结果",
       },
     ];
   }
 
-  getDefaultConfig() {
-    return {};
-  }
-
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const url = inputs.url || config.url;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!url) {
-      throw new Error("必须提供URL");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const url = this.getInput(inputs, "url");
 
-    context.logger.debug("加载URL", { viewId, url });
+    this.logger.debug("加载URL", { viewId, url });
 
-    const response = await context.http.invoke("views:loadURL", viewId, url);
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `已加载URL: ${url}`,
-    };
+    return await this.invoke("views:loadURL", viewId, url);
   }
 }
 

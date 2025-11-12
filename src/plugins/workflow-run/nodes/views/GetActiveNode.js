@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 获取活动视图节点
  * 通过 HTTP 调用 views:getActive channel
  */
-export class ViewsGetActiveNode extends BaseNode {
+export class ViewsGetActiveNode extends HttpFlowNode {
   type = "http:views:getActive";
   label = "获取活动视图";
   description = "通过 HTTP API 获取活动视图ID";
@@ -16,11 +16,7 @@ export class ViewsGetActiveNode extends BaseNode {
 
   defineOutputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
@@ -28,18 +24,10 @@ export class ViewsGetActiveNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    context.logger.debug("获取活动视图");
+  async execute(inputs, execContext) {
+    this.logger.debug("获取活动视图");
 
-    const response = await context.http.invoke("views:getActive");
-
-    return {
-      outputs: {
-        viewId: response.result?.id || null,
-      },
-      raw: response.result || response,
-      summary: `活动视图: ${response.result?.id || "无"}`,
-    };
+    return await this.invoke("views:getActive");
   }
 }
 

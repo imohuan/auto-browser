@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 增强点击节点
  * 通过 HTTP 调用 automation:enhancedClick channel
  */
-export class AutomationEnhancedClickNode extends BaseNode {
+export class AutomationEnhancedClickNode extends HttpFlowNode {
   type = "http:automation:enhancedClick";
   label = "增强点击";
   description = "通过 HTTP API 执行增强版点击（支持等待导航）";
@@ -13,33 +13,33 @@ export class AutomationEnhancedClickNode extends BaseNode {
   defineInputs() {
     return [
       {
-        id: "viewId",
-        name: "视图ID",
+        name: "viewId",
         type: "string",
+        description: "视图ID",
         required: true,
       },
       {
-        id: "selector",
-        name: "选择器",
+        name: "selector",
         type: "string",
+        description: "选择器",
         required: true,
       },
       {
-        id: "waitForNavigation",
-        name: "等待导航",
+        name: "waitForNavigation",
         type: "boolean",
+        description: "等待导航",
         required: false,
       },
       {
-        id: "timeout",
-        name: "超时时间",
+        name: "timeout",
         type: "number",
+        description: "超时时间",
         required: false,
       },
       {
-        id: "coordinates",
-        name: "点击坐标",
+        name: "coordinates",
         type: "object",
+        description: "点击坐标",
         required: false,
       },
     ];
@@ -48,57 +48,33 @@ export class AutomationEnhancedClickNode extends BaseNode {
   defineOutputs() {
     return [
       {
-        id: "result",
-        name: "结果",
+        name: "result",
         type: "any",
+        description: "结果",
       },
     ];
   }
 
-  getDefaultConfig() {
-    return {
-      waitForNavigation: false,
-      timeout: 5000,
-    };
-  }
-
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const selector = inputs.selector || config.selector;
-    const waitForNavigation = inputs.waitForNavigation !== undefined
-      ? inputs.waitForNavigation
-      : config.waitForNavigation !== undefined
-        ? config.waitForNavigation
-        : false;
-    const timeout = inputs.timeout || config.timeout || 5000;
-    const coordinates = inputs.coordinates || config.coordinates;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!selector) {
-      throw new Error("必须提供选择器");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const selector = this.getInput(inputs, "selector");
+    const waitForNavigation = this.getInput(inputs, "waitForNavigation");
+    const timeout = this.getInput(inputs, "timeout");
+    const coordinates = this.getInput(inputs, "coordinates");
 
-    // 构建选项对象
     const options = {};
     if (waitForNavigation !== undefined) options.waitForNavigation = waitForNavigation;
     if (timeout !== undefined) options.timeout = timeout;
     if (coordinates) options.coordinates = coordinates;
 
-    context.logger.debug("执行增强点击", { viewId, selector, options });
+    this.logger.debug("执行增强点击", { viewId, selector, options });
 
-    // 调用 HTTP API
-    const response = await context.http.invoke("automation:enhancedClick", viewId, selector, options);
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `已执行增强点击 ${selector}`,
-    };
+    return await this.invoke("automation:enhancedClick", viewId, selector, options);
   }
 }
 

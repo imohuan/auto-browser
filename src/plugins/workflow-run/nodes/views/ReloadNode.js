@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 刷新视图节点
  * 通过 HTTP 调用 views:reload channel
  */
-export class ViewsReloadNode extends BaseNode {
+export class ViewsReloadNode extends HttpFlowNode {
   type = "http:views:reload";
   label = "刷新视图";
   description = "通过 HTTP API 刷新视图";
@@ -12,22 +12,13 @@ export class ViewsReloadNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "result",
-        name: "结果",
-        type: "any",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
@@ -35,24 +26,17 @@ export class ViewsReloadNode extends BaseNode {
     return {};
   }
 
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    context.logger.debug("刷新视图", { viewId });
+    const viewId = this.getInput(inputs, "viewId");
 
-    const response = await context.http.invoke("views:reload", viewId);
+    this.logger.debug("刷新视图", { viewId });
 
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: "已刷新视图",
-    };
+    return await this.invoke("views:reload", viewId);
   }
 }
 

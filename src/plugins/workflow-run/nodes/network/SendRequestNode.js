@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 网络请求节点
  * 通过 HTTP 调用 network:sendRequest channel
  */
-export class NetworkSendRequestNode extends BaseNode {
+export class NetworkSendRequestNode extends HttpFlowNode {
   type = "http:network:sendRequest";
   label = "发送网络请求";
   description = "通过 HTTP API 发送网络请求";
@@ -12,82 +12,37 @@ export class NetworkSendRequestNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "url",
-        name: "URL",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "method",
-        name: "请求方法",
-        type: "string",
-        required: false,
-      },
-      {
-        id: "headers",
-        name: "请求头",
-        type: "object",
-        required: false,
-      },
-      {
-        id: "body",
-        name: "请求体",
-        type: "any",
-        required: false,
-      },
-      {
-        id: "timeout",
-        name: "超时时间",
-        type: "number",
-        required: false,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
+      { name: "url", type: "string", description: "URL", required: true },
+      { name: "method", type: "string", description: "请求方法", required: false },
+      { name: "headers", type: "object", description: "请求头", required: false },
+      { name: "body", type: "any", description: "请求体", required: false },
+      { name: "timeout", type: "number", description: "超时时间", required: false },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "result",
-        name: "结果",
-        type: "any",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
-  getDefaultConfig() {
-    return {
-      method: "GET",
-      timeout: 30000,
-    };
-  }
-
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const url = inputs.url || config.url;
-    const method = inputs.method || config.method || "GET";
-    const headers = inputs.headers || config.headers || {};
-    const body = inputs.body !== undefined ? inputs.body : config.body;
-    const timeout = inputs.timeout || config.timeout || 30000;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (!url) {
-      throw new Error("必须提供URL");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const url = this.getInput(inputs, "url");
+    const method = this.getInput(inputs, "method") ?? "GET";
+    const headers = this.getInput(inputs, "headers") ?? {};
+    const body = this.getInput(inputs, "body");
+    const timeout = this.getInput(inputs, "timeout") ?? 30000;
 
-    context.logger.debug("发送网络请求", { viewId, url, method, timeout });
+    this.logger.debug("发送网络请求", { viewId, url, method, timeout });
 
-    // 调用 HTTP API
-    const response = await context.http.invoke(
+    return await this.invoke(
       "network:sendRequest",
       viewId,
       url,
@@ -96,14 +51,6 @@ export class NetworkSendRequestNode extends BaseNode {
       body,
       timeout
     );
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `${method} ${url}`,
-    };
   }
 }
 

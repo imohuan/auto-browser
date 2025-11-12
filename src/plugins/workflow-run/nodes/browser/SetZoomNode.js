@@ -1,10 +1,10 @@
-import { BaseNode, context } from "../../context.js";
+import { HttpFlowNode } from "../HttpFlowNode.js";
 
 /**
  * HTTP 设置缩放级别节点
  * 通过 HTTP 调用 browser:setZoom channel
  */
-export class BrowserSetZoomNode extends BaseNode {
+export class BrowserSetZoomNode extends HttpFlowNode {
   type = "http:browser:setZoom";
   label = "设置缩放";
   description = "通过 HTTP API 设置浏览器缩放级别";
@@ -12,60 +12,29 @@ export class BrowserSetZoomNode extends BaseNode {
 
   defineInputs() {
     return [
-      {
-        id: "viewId",
-        name: "视图ID",
-        type: "string",
-        required: true,
-      },
-      {
-        id: "zoomFactor",
-        name: "缩放因子",
-        type: "number",
-        required: true,
-      },
+      { name: "viewId", type: "string", description: "视图ID", required: true },
+      { name: "zoomFactor", type: "number", description: "缩放因子", required: true },
     ];
   }
 
   defineOutputs() {
     return [
-      {
-        id: "result",
-        name: "结果",
-        type: "any",
-      },
+      { name: "result", type: "any", description: "结果" },
     ];
   }
 
-  getDefaultConfig() {
-    return {
-      zoomFactor: 1.0,
-    };
-  }
-
-  async execute(config, inputs, workflowContext) {
-    const viewId = inputs.viewId || config.viewId;
-    const zoomFactor = inputs.zoomFactor !== undefined ? inputs.zoomFactor : config.zoomFactor;
-
-    if (!viewId) {
-      throw new Error("必须提供视图ID");
+  async execute(inputs, execContext) {
+    const validation = this.validateInputs(inputs);
+    if (!validation.valid) {
+      return this.createError(validation.errors.join("; "));
     }
 
-    if (zoomFactor === undefined || zoomFactor === null) {
-      throw new Error("必须提供缩放因子");
-    }
+    const viewId = this.getInput(inputs, "viewId");
+    const zoomFactor = this.getInput(inputs, "zoomFactor");
 
-    context.logger.debug("设置缩放级别", { viewId, zoomFactor });
+    this.logger.debug("设置缩放级别", { viewId, zoomFactor });
 
-    const response = await context.http.invoke("browser:setZoom", viewId, zoomFactor);
-
-    return {
-      outputs: {
-        result: response.result || response,
-      },
-      raw: response.result || response,
-      summary: `已设置缩放级别: ${zoomFactor}`,
-    };
+    return await this.invoke("browser:setZoom", viewId, zoomFactor);
   }
 }
 
