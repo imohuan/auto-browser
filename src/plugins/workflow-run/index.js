@@ -104,7 +104,8 @@ export default class WorkflowRunPlugin extends BasePlugin {
         "http:automation:uploadFile": AutomationUploadFileNode,
         "http:automation:getText": AutomationGetTextNode,
         "http:automation:findElementsByText": AutomationFindElementsByTextNode,
-        "http:automation:getInteractiveElements": AutomationGetInteractiveElementsNode,
+        "http:automation:getInteractiveElements":
+          AutomationGetInteractiveElementsNode,
         "http:automation:scroll": AutomationScrollNode,
         "http:automation:simulateKeyboard": AutomationSimulateKeyboardNode,
         "http:automation:fillForm": AutomationFillFormNode,
@@ -128,7 +129,8 @@ export default class WorkflowRunPlugin extends BasePlugin {
         "http:network:getStatus": NetworkGetStatusNode,
         "http:network:sendRequest": NetworkSendRequestNode,
         "http:network:startDebuggerCapture": NetworkStartDebuggerCaptureNode,
-        "http:network:startWebRequestCapture": NetworkStartWebRequestCaptureNode,
+        "http:network:startWebRequestCapture":
+          NetworkStartWebRequestCaptureNode,
         "http:network:stopDebuggerCapture": NetworkStopDebuggerCaptureNode,
         "http:network:stopWebRequestCapture": NetworkStopWebRequestCaptureNode,
       };
@@ -144,6 +146,10 @@ export default class WorkflowRunPlugin extends BasePlugin {
         port: APP_CONFIG.WS_PORT,
         nodeRegistry: this.nodeRegistry,
         historyHandlers: historyHandler,
+        log: (...args) =>
+          this.logger.info(args.map((arg) => JSON.stringify(arg)).join(", ")),
+        error: (...args) =>
+          this.logger.error(args.map((arg) => JSON.stringify(arg)).join(", ")),
       });
 
       const info = this.server.getInfo();
@@ -177,4 +183,3 @@ export default class WorkflowRunPlugin extends BasePlugin {
     this.logger.info("工作流节点执行器插件清理完成");
   }
 }
-
