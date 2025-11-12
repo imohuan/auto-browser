@@ -155,10 +155,7 @@ class ViewManager {
       logger.debug(`页面开始加载: ${viewId}`);
       // 清除错误标志
       config.hasLoadError = false;
-      // 确保视图在加载期间可见
-      config.visible = true;
-      view.setVisible(true);
-      // 通知主渲染进程开始加载
+      // 仅通知渲染进程，不在此强制更改可见性（由渲染进程控制）
       if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
         this.mainView.webContents.send('views:loading-state-changed', {
           viewId,
@@ -167,26 +164,43 @@ class ViewManager {
       }
     });
 
-    // 监听页面加载完成，重新绑定快捷键
+    // 监听页面加载完成
     view.webContents.on('did-finish-load', () => {
-      logger.debug(`页面加载完成，快捷键已重新绑定: ${viewId}`);
+      logger.debug(`页面加载完成: ${viewId}`);
+      // 确保视图已添加到窗口（不改变可见性或活动状态，由渲染进程控制）
       this.baseWindow.contentView.addChildView(view);
 
       if (config.hasLoadError) {
         logger.warn(`页面加载失败，保持隐藏状态: ${viewId}`);
         view.setVisible(false);
-        config.visible = false;
         return;
       }
 
-      // 如果是第一个视图或设置为可见，则自动设为活动视图
-      if (this.views.size === 1 || config.visible) {
-        this.setActiveView(viewId);
-      } else {
-        // 否则隐藏该视图
-        view.setVisible(false);
+      if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+        this.mainView.webContents.send('views:loading-state-changed', {
+          viewId,
+          loading: false,
+          error: null,
+        });
       }
+    });
 
+    // 监听页面停止加载（有些站点会触发 stop 而非 finish）
+    view.webContents.on('did-stop-loading', () => {
+      logger.debug(`页面停止加载: ${viewId}`);
+      if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+        this.mainView.webContents.send('views:loading-state-changed', {
+          viewId,
+          loading: false,
+          error: null,
+        });
+      }
+    });
+
+    // 处理单页应用内导航（不触发完整加载）
+    view.webContents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
+      logger.debug(`页面内导航: ${viewId}`, { url, isMainFrame });
+      // 通知渲染进程停止加载指示器（若有）
       if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
         this.mainView.webContents.send('views:loading-state-changed', {
           viewId,

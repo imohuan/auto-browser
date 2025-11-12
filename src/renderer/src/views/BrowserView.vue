@@ -1129,16 +1129,16 @@ async function handleLoadingStateChanged(payload: {
 
     viewsStore.updateView(view.id, updates);
 
-    if (payload.loading) {
-      if (view.backendId && view.selected) {
-        await ipc.setViewVisible(view.backendId, true);
-      }
-    } else if (payload.error) {
-      if (view.backendId) {
+    if (view.backendId) {
+      if (view.selected) {
+        if (payload.error) {
+          await ipc.setViewVisible(view.backendId, false);
+        } else {
+          await ipc.setViewVisible(view.backendId, true);
+        }
+      } else {
         await ipc.setViewVisible(view.backendId, false);
       }
-    } else if (!payload.error && view.backendId && view.selected) {
-      await ipc.setViewVisible(view.backendId, true);
     }
   }
 }

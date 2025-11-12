@@ -201,6 +201,7 @@ export const APP_CACHE_TABLE_SCHEMA = {
       name: 'value',
       type: 'json',
       required: true,
+      options: {}
     },
     {
       name: 'expireAt',
