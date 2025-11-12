@@ -4,8 +4,13 @@ import { APP_CONFIG, POCKETBASE_CONFIG } from "../../../core/constants.js";
 import { BrowserWindow, ipcMain } from "electron";
 import { resolve, resolveUserData } from "../../../utils/path-resolver.js";
 import { SecureStore } from "../../../utils/secure-store.js";
-import { WORKFLOW_TABLE_SCHEMA } from "./tables.js";
+import { WORKFLOW_TABLE_SCHEMA, EXECUTION_HISTORY_TABLE_SCHEMA, APP_CACHE_TABLE_SCHEMA } from "./tables.js";
 
+const TABLE_SCHEMAS = [
+  WORKFLOW_TABLE_SCHEMA,
+  EXECUTION_HISTORY_TABLE_SCHEMA,
+  APP_CACHE_TABLE_SCHEMA,
+];
 
 export const createRegisterWindow = () => {
   const logger = createLogger("PocketBase注册窗口");
@@ -564,18 +569,27 @@ export class PocketBaseInitializer {
   async initPocketBase(forceRecreate = false, username = null, password = null) {
     ({ username, password } = await this._resolveCredentials(username, password));
     try {
+      const createdCollections = [];
+
       // 创建 spread 集合
       this.logger.debug("创建 spread 集合...");
       const spreadCollection = await this.createCollection(forceRecreate, username, password);
+      createdCollections.push(spreadCollection);
 
-      // 创建 workflows 集合
-      this.logger.debug("创建 workflows 集合...");
-      const workflowCollection = await this.createCollectionFromSchema(
-        WORKFLOW_TABLE_SCHEMA,
-        forceRecreate,
-        username,
-        password
-      );
+      // 循环创建 TABLE_SCHEMAS 数组中的所有表
+      this.logger.debug(`开始创建 ${TABLE_SCHEMAS.length} 个表集合...`);
+      for (const schema of TABLE_SCHEMAS) {
+        const collectionName = schema.name;
+        this.logger.debug(`创建 ${collectionName} 集合...`);
+        const collection = await this.createCollectionFromSchema(
+          schema,
+          forceRecreate,
+          username,
+          password
+        );
+        createdCollections.push(collection);
+        this.logger.debug(`${collectionName} 集合创建成功`);
+      }
 
       // 测试数据库功能是否正常
       this.logger.debug("测试数据库功能...");
@@ -587,16 +601,22 @@ export class PocketBaseInitializer {
 
       this.logger.debug("数据库功能测试通过");
 
+      // 构建日志信息
+      const collectionsInfo = createdCollections.reduce((acc, collection) => {
+        acc[`${collection.name}CollectionId`] = collection.id;
+        return acc;
+      }, {});
+
       this.logger.debug("PocketBase 初始化完成", {
-        spreadCollectionId: spreadCollection.id,
-        workflowCollectionId: workflowCollection.id,
+        ...collectionsInfo,
         adminUI: `${this.pbUrl}/_/`,
         email: username,
       });
 
       console.log("✅ PocketBase 初始化成功");
-      console.log(`   - spread 集合: ${spreadCollection.name}`);
-      console.log(`   - workflows 集合: ${workflowCollection.name}`);
+      for (const collection of createdCollections) {
+        console.log(`   - ${collection.name} 集合`);
+      }
 
       return true;
     } catch (error) {

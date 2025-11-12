@@ -150,7 +150,8 @@ async function createWindow() {
   // controlPanel.create();
   viewManager.createView({ url: resolve('web', 'control-panel.html') })
   viewManager.createView({ url: resolve('web', 'multidimensional_table.html') })
-  viewManager.createView({ url: `http://localhost:${IPC_CONFIG.HTTP_PORT}/web?mode=server&serverUrl=${encodeURIComponent(`ws://localhost:${IPC_CONFIG.WS_PORT}`)}` })
+  // viewManager.createView({ url: `http://localhost:${IPC_CONFIG.HTTP_PORT}/web?mode=server&serverUrl=${encodeURIComponent(`ws://localhost:${IPC_CONFIG.WS_PORT}`)}` })
+  viewManager.createView({ url: `http://localhost:${IPC_CONFIG.POCKETBASE_PORT}/_` })
 
   // 9. 加载并初始化插件
   await pluginManager.loadPlugins();

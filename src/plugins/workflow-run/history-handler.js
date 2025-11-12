@@ -3,8 +3,6 @@
  * 用于 start-server.js 的工作流执行历史记录保存
  */
 
-import PocketBase from "pocketbase";
-
 /**
  * 创建 PocketBase 历史记录处理器
  * @param {Object} options - 配置选项
@@ -16,6 +14,7 @@ import PocketBase from "pocketbase";
 export async function createPocketBaseHistoryHandler() {
   // 创建 PocketBase 实例
   let pb = null;
+  const collectionName = "execution_history";
 
   return {
     setPb(_pb) {
