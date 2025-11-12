@@ -80,10 +80,21 @@
               <XMark class="w-3 h-3" />
             </button>
           </div>
+
+          <!-- 新建标签页按钮 - 跟随在最后一个标签页后面 -->
+          <button
+            v-if="!isAddButtonFixed"
+            class="flex items-center justify-center w-8 h-8 rounded hover:bg-gray-200 transition-colors shrink-0"
+            @click="handleAddTab"
+            title="新建标签页"
+          >
+            <Plus class="w-4 h-4" />
+          </button>
         </div>
 
         <!-- 新建标签页按钮 - 固定在右侧 -->
         <button
+          v-if="isAddButtonFixed"
           class="flex items-center justify-center w-8 h-8 rounded hover:bg-gray-200 transition-colors shrink-0 mr-1"
           @click="handleAddTab"
           title="新建标签页"
@@ -306,6 +317,7 @@ const tabMargin = ref("0px"); // 标签页左边距（用于重叠效果）
 const isOverlapMode = ref(false); // 是否处于重叠模式
 const showTabTitle = ref(true);
 const showCloseButton = ref(true);
+const isAddButtonFixed = ref(false); // 新建按钮是否固定在右侧
 
 // 当前激活的视图
 const activeView = computed(() => viewsStore.selectedView);
@@ -328,25 +340,46 @@ function calculateTabLayout() {
     isOverlapMode.value = false;
     showTabTitle.value = true;
     showCloseButton.value = true;
+    isAddButtonFixed.value = false; // 没有标签页时，按钮跟随
     return;
   }
 
-  // 可用宽度 = 容器宽度 - 切换按钮 - 新建按钮 - 容器内边距
-  const availableWidth =
+  // 先计算不包含新建按钮的可用宽度（用于判断按钮是否需要固定）
+  const availableWidthWithoutButton =
     containerWidth -
     TOGGLE_BUTTON_WIDTH -
-    NEW_TAB_BUTTON_WIDTH -
     CONTAINER_PADDING;
 
-  // 第一档：空间足够，使用默认宽度
+  // 计算标签页需要的最小宽度（包括间隙）
   const totalGap = (tabCount - 1) * TAB_GAP;
+  const minTabWidthNeeded = tabCount * MIN_TAB_WIDTH + totalGap;
+
+  // 判断新建按钮是否需要固定在右侧
+  // 如果标签页最小宽度已经超过可用宽度，则按钮需要固定
+  isAddButtonFixed.value = minTabWidthNeeded > availableWidthWithoutButton;
+
+  // 根据按钮位置计算实际可用宽度
+  let availableWidth: number;
+  if (isAddButtonFixed.value) {
+    // 按钮固定时，需要减去按钮宽度
+    availableWidth =
+      containerWidth -
+      TOGGLE_BUTTON_WIDTH -
+      NEW_TAB_BUTTON_WIDTH -
+      CONTAINER_PADDING;
+  } else {
+    // 按钮跟随时，不需要减去按钮宽度
+    availableWidth = availableWidthWithoutButton;
+  }
+
+  // 第一档：空间足够，使用默认宽度
   const availableForTabs = availableWidth - totalGap;
   const averageWidth = availableForTabs / tabCount;
 
   console.log(
     `[标签页布局] 容器宽度: ${containerWidth}px, 标签数: ${tabCount}, 可用宽度: ${availableForTabs}px, 平均宽度: ${averageWidth.toFixed(
       2
-    )}px`
+    )}px, 按钮固定: ${isAddButtonFixed.value}`
   );
 
   if (averageWidth >= DEFAULT_TAB_WIDTH) {

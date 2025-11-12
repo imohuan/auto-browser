@@ -4,15 +4,11 @@
       <div class="flex gap-2 items-center h-full p-2 z-100">
         <button
           class="w-10 h-full rounded-md cursor-pointer flex items-center justify-center transition-all z-[1000] hover:scale-105 no-drag border border-gray-200/50"
-          @click="handleAddView"
-          title="添加新视图"
-        >
+          @click="handleAddView" title="添加新视图">
           <PlusCircle />
         </button>
 
-        <div
-          class="flex items-center gap-2 text-gray-900/85 text-xs font-mono z-[1500] px-2"
-        >
+        <div class="flex items-center gap-2 text-gray-900/85 text-xs font-mono z-[1500] px-2">
           <span>容器数量: {{ viewsStore.viewCount }}</span>
           <span>已显示: {{ visibleCount }}</span>
           <span v-if="gridStore.isDragging">拖拽中...</span>
@@ -22,152 +18,80 @@
     </Header>
 
     <div ref="gridWrapperRef" class="flex-1 overflow-auto pt-2 p-1">
-      <GridLayout
-        ref="gridLayoutRef"
-        v-model:layout="viewsStore.views"
-        :col-num="gridStore.colNum"
-        :row-height="gridStore.rowHeight"
-        :margin="gridStore.margin"
-        :is-draggable="true"
-        :is-resizable="true"
-        :vertical-compact="true"
-        :use-css-transforms="true"
-        @layout-updated="handleLayoutUpdated"
-        @layout-ready="handleLayoutReady"
-      >
-        <GridItem
-          v-for="view in viewsStore.views"
-          :key="view.id"
-          :x="view.x"
-          :y="view.y"
-          :w="view.w"
-          :h="view.h"
-          :i="view.id"
-          :min-w="2"
-          :min-h="2"
-          @move="handleMove"
-          @resize="handleResize"
-          @moved="handleMoved"
-          @resized="handleResized"
-        >
-          <div
-            :ref="(el) => setViewRef(view.id, el)"
-            :class="[
-              'w-full h-full bg-white rounded-lg shadow-md flex flex-col overflow-hidden transition-shadow cursor-pointer',
-              {
-                'shadow-[0_0_0_3px_#667eea,0_4px_12px_rgba(102,126,234,0.3)]':
-                  view.selected,
-              },
-            ]"
-            @click="handleSelectView(view.id)"
-          >
+      <GridLayout ref="gridLayoutRef" v-model:layout="viewsStore.views" :col-num="gridStore.colNum"
+        :row-height="gridStore.rowHeight" :margin="gridStore.margin" :is-draggable="true" :is-resizable="true"
+        :vertical-compact="true" :use-css-transforms="true" @layout-updated="handleLayoutUpdated"
+        @layout-ready="handleLayoutReady">
+        <GridItem v-for="view in viewsStore.views" :key="view.id" :x="view.x" :y="view.y" :w="view.w" :h="view.h"
+          :i="view.id" :min-w="2" :min-h="2" @move="handleMove" @resize="handleResize" @moved="handleMoved"
+          @resized="handleResized">
+          <div :ref="(el) => setViewRef(view.id, el)" :class="[
+            'w-full h-full bg-white rounded-lg shadow-md flex flex-col overflow-hidden transition-shadow cursor-pointer',
+            {
+              'shadow-[0_0_0_3px_#667eea,0_4px_12px_rgba(102,126,234,0.3)]':
+                view.selected,
+            },
+          ]" @click="handleSelectView(view.id)">
             <!-- 标题栏 -->
             <div
-              class="h-10 bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-between px-3 select-none"
-            >
-              <div
-                class="flex items-center gap-1 flex-1 min-w-0 text-sm font-medium"
-              >
+              class="h-10 bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-between px-3 select-none">
+              <div class="flex items-center gap-1 flex-1 min-w-0 text-sm font-medium">
                 <button
                   class="w-7 h-7 rounded bg-white/20 border-0 text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed"
-                  @click.stop="handleGoBack(view.id)"
-                  title="后退"
-                  :disabled="
-                    !viewHistoryMap[view.id]?.canGoBack || !view.visible
-                  "
-                >
+                  @click.stop="handleGoBack(view.id)" title="后退" :disabled="!viewHistoryMap[view.id]?.canGoBack || !view.visible
+                    ">
                   <ChevronLeft />
                 </button>
                 <button
                   class="w-7 h-7 rounded bg-white/20 border-0 text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed"
-                  @click.stop="handleGoForward(view.id)"
-                  title="前进"
-                  :disabled="
-                    !viewHistoryMap[view.id]?.canGoForward || !view.visible
-                  "
-                >
+                  @click.stop="handleGoForward(view.id)" title="前进" :disabled="!viewHistoryMap[view.id]?.canGoForward || !view.visible
+                    ">
                   <ChevronRight />
                 </button>
-                <img
-                  v-if="view.favicon"
-                  :src="view.favicon"
-                  class="w-4 h-4 shrink-0 object-contain ml-1"
-                  @error="handleFaviconError(view.id)"
-                  alt="favicon"
-                />
+                <img v-if="view.favicon" :src="view.favicon" class="w-4 h-4 shrink-0 object-contain ml-1"
+                  @error="handleFaviconError(view.id)" alt="favicon" />
                 <Globe v-else class="ml-1" />
-                <span
-                  class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-                  >{{ view.title || "未命名" }}</span
-                >
+                <span class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{{ view.title || "未命名"
+                }}</span>
               </div>
               <div class="flex gap-1">
                 <button
                   class="w-7 h-7 rounded bg-white/20 border-0 text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed"
-                  @click.stop="handleRefreshView(view.id)"
-                  title="刷新"
-                  :disabled="!view.visible"
-                >
+                  @click.stop="handleRefreshView(view.id)" title="刷新" :disabled="!view.visible">
                   <ArrowPath />
                 </button>
                 <button
                   class="w-7 h-7 rounded bg-white/20 border-0 text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed"
-                  @click.stop="handleZoomView(view.id, -ZOOM_STEP)"
-                  title="缩小"
-                  :disabled="!view.visible"
-                >
+                  @click.stop="handleZoomView(view.id, -ZOOM_STEP)" title="缩小" :disabled="!view.visible">
                   <Minus />
                 </button>
                 <button
                   class="w-7 h-7 rounded bg-white/20 border-0 text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed"
-                  @click.stop="handleZoomView(view.id, ZOOM_STEP)"
-                  title="放大"
-                  :disabled="!view.visible"
-                >
+                  @click.stop="handleZoomView(view.id, ZOOM_STEP)" title="放大" :disabled="!view.visible">
                   <Plus />
                 </button>
                 <button
                   class="w-7 h-7 rounded bg-white/20 border-0 text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed"
-                  @click.stop="toggleViewVisibility(view.id)"
-                  :title="view.visible ? '隐藏' : '显示'"
-                >
+                  @click.stop="toggleViewVisibility(view.id)" :title="view.visible ? '隐藏' : '显示'">
                   <Eye v-if="!view.visible" />
                   <EyeSlash v-else />
                 </button>
                 <button
                   class="w-7 h-7 rounded bg-white/20 border-0 text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-white/30"
-                  @click.stop="handleRemoveView(view.id)"
-                  title="删除"
-                >
+                  @click.stop="handleRemoveView(view.id)" title="删除">
                   <XMark />
                 </button>
               </div>
             </div>
 
             <!-- 内容区 -->
-            <div
-              class="flex-1 bg-gray-50 flex items-center justify-center overflow-hidden p-4"
-            >
+            <div class="flex-1 bg-gray-50 flex items-center justify-center overflow-hidden p-4">
               <!-- 加载失败状态 -->
-              <div
-                v-if="view.loadError"
-                class="flex flex-col items-center justify-center text-center max-w-md"
-              >
-                <div
-                  class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-3"
-                >
-                  <svg
-                    class="w-8 h-8 text-red-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
+              <div v-if="view.loadError" class="flex flex-col items-center justify-center text-center max-w-md">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-3">
+                  <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
                 <h4 class="text-sm font-semibold text-red-900 mb-2">
@@ -179,29 +103,20 @@
                 <p class="text-xs text-gray-500 break-all mb-3">
                   {{ view.loadError.validatedURL }}
                 </p>
-                <button
-                  @click.stop="handleRefreshView(view.id)"
+                <button @click.stop="handleRefreshView(view.id)"
                   class="px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors"
-                  :disabled="!view.visible"
-                >
+                  :disabled="!view.visible">
                   重新加载
                 </button>
               </div>
               <!-- 加载中状态 -->
-              <div
-                v-else-if="view.loading"
-                class="flex flex-col items-center gap-3"
-              >
-                <div
-                  class="w-10 h-10 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"
-                ></div>
+              <div v-else-if="view.loading" class="flex flex-col items-center gap-3">
+                <div class="w-10 h-10 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"></div>
                 <p class="text-sm">加载中...</p>
               </div>
               <!-- 隐藏状态 -->
-              <div
-                v-else-if="!view.visible"
-                class="flex flex-col items-center justify-center text-center text-gray-400"
-              >
+              <div v-else-if="!view.visible"
+                class="flex flex-col items-center justify-center text-center text-gray-400">
                 <EyeSlash class="w-12 h-12 text-gray-400" />
                 <p class="text-sm text-gray-500 mt-2">已隐藏</p>
                 <p class="text-xs text-gray-400 mt-1">
@@ -209,10 +124,7 @@
                 </p>
               </div>
               <!-- 正常状态 -->
-              <div
-                v-else
-                class="text-center text-gray-400 flex flex-col items-center justify-center"
-              >
+              <div v-else class="text-center text-gray-400 flex flex-col items-center justify-center">
                 <Globe class="w-12 h-12 text-gray-400" />
                 <p class="text-sm text-gray-500 mt-2">
                   {{ view.url || "about:blank" }}
@@ -915,14 +827,16 @@ onMounted(async () => {
     gridStore.setPendingScrollViewId(null);
   }
 
-  viewsStore.views.forEach(async (view) => {
-    if (view.visible && view.backendId) {
-      // 先计算并设置 bounds，再显示视图
-      updateViewBoundsImmediate(view.id);
-      await nextTick();
-      await ipc.setViewVisible(view.backendId, true);
-    }
-  });
+  setTimeout(() => {
+    viewsStore.views.forEach(async (view) => {
+      if (view.visible && view.backendId) {
+        // 先计算并设置 bounds，再显示视图
+        updateViewBoundsImmediate(view.id);
+        await nextTick();
+        await ipc.setViewVisible(view.backendId, true);
+      }
+    });
+  }, 200);
 });
 
 onUnmounted(async () => {
