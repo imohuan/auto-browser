@@ -254,6 +254,40 @@ class ViewManager {
       }
     });
 
+    // 监听webContents销毁事件（重要：防止登录窗口关闭导致渲染进程崩溃）
+    view.webContents.on('destroyed', () => {
+      logger.info(`webContents已销毁: ${viewId}`);
+      
+      // 自动清理view资源
+      try {
+        // 从baseWindow移除（如果还未移除）
+        if (this.baseWindow.contentView.children.includes(view)) {
+          this.baseWindow.contentView.removeChildView(view);
+        }
+        
+        // 从Map中移除
+        this.views.delete(viewId);
+        
+        // 如果是活动视图，清空活动视图ID
+        if (this.activeViewId === viewId) {
+          this.activeViewId = null;
+        }
+        
+        // 通知主渲染进程视图已销毁
+        if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
+          this.mainView.webContents.send('views:sync', {
+            action: 'removed',
+            viewId,
+            views: this.getAllViews()
+          });
+        }
+        
+        logger.info(`视图资源已自动清理: ${viewId}`);
+      } catch (error) {
+        logger.error(`清理视图资源失败: ${viewId}`, error);
+      }
+    });
+
     // 保存视图配置
     this.views.set(viewId, { view, config });
 
@@ -294,11 +328,34 @@ class ViewManager {
 
     const { view } = viewData;
 
+    // 检查webContents是否已被销毁
+    if (view.webContents.isDestroyed()) {
+      logger.warn(`视图的webContents已销毁，仅清理引用: ${viewId}`);
+      // 从Map中移除引用
+      this.views.delete(viewId);
+      // 如果是活动视图，清空活动视图ID
+      if (this.activeViewId === viewId) {
+        this.activeViewId = null;
+      }
+      logger.info('已清理已销毁视图的引用', { viewId });
+      return true;
+    }
+
     // 从 baseWindow 移除
-    this.baseWindow.contentView.removeChildView(view);
+    try {
+      if (this.baseWindow.contentView.children.includes(view)) {
+        this.baseWindow.contentView.removeChildView(view);
+      }
+    } catch (error) {
+      logger.error(`从baseWindow移除视图失败: ${viewId}`, error);
+    }
 
     // 清理事件监听器
-    view.webContents.removeAllListeners();
+    try {
+      view.webContents.removeAllListeners();
+    } catch (error) {
+      logger.error(`清理事件监听器失败: ${viewId}`, error);
+    }
 
     // 从 Map 中移除
     this.views.delete(viewId);
@@ -317,7 +374,17 @@ class ViewManager {
    */
   getView(viewId) {
     const viewData = this.views.get(viewId);
-    return viewData ? viewData.view : null;
+    if (!viewData) {
+      return null;
+    }
+    
+    // 检查webContents是否已被销毁
+    if (viewData.view.webContents.isDestroyed()) {
+      logger.warn(`视图的webContents已销毁: ${viewId}`);
+      return null;
+    }
+    
+    return viewData.view;
   }
 
   /**
@@ -402,8 +469,16 @@ class ViewManager {
    */
   getAllViews() {
     const viewsInfo = [];
+    const destroyedViewIds = [];
 
     for (const [viewId, viewData] of this.views) {
+      // 检查webContents是否已被销毁
+      if (viewData.view.webContents.isDestroyed()) {
+        logger.warn(`发现已销毁的视图，将被过滤: ${viewId}`);
+        destroyedViewIds.push(viewId);
+        continue;
+      }
+
       viewsInfo.push({
         id: viewId,
         title: viewData.config.title,
@@ -414,6 +489,18 @@ class ViewManager {
         isActive: viewId === this.activeViewId,
         isVisible: viewData.view.webContents.isVisible ? viewData.view.webContents.isVisible() : true,
       });
+    }
+
+    // 清理已销毁视图的引用
+    destroyedViewIds.forEach(viewId => {
+      this.views.delete(viewId);
+      if (this.activeViewId === viewId) {
+        this.activeViewId = null;
+      }
+    });
+
+    if (destroyedViewIds.length > 0) {
+      logger.info(`已清理${destroyedViewIds.length}个已销毁视图的引用`);
     }
 
     logger.debug('查询视图列表', { count: viewsInfo.length, activeViewId: this.activeViewId });

@@ -15,6 +15,10 @@ export class HttpFlowNode extends BaseFlowNode {
     this.port = APP_CONFIG.HTTP_PORT;
   }
 
+  shouldUseCache(inputs, context) {
+    return false;
+  }
+
   /**
    * 原始 HTTP 调用（抛出异常由上层处理）
    * @param {string} channel
@@ -36,7 +40,9 @@ export class HttpFlowNode extends BaseFlowNode {
       try {
         errorData = await response.json();
       } catch {
-        errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+        errorData = {
+          error: `HTTP ${response.status}: ${response.statusText}`,
+        };
       }
       this.logger.error("响应错误", { channel, args, errorData });
       throw new Error(errorData.error || `HTTP ${response.status}`);

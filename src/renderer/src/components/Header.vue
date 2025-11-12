@@ -1,7 +1,6 @@
 <template>
   <DraggableArea
     class="h-10 flex items-center gap-1 z-50 bg-white/80 backdrop-blur-sm border-t border-x border-gray-300"
-    @dblclick="handleToggleMaximize"
   >
     <div class="flex-1 min-w-0 h-full">
       <slot></slot>
@@ -125,13 +124,13 @@ async function handleMinimize() {
 
 // 切换最大化/还原
 async function handleToggleMaximize() {
-  // const result = await ipc.invoke("ui:window-toggle-maximize");
-  //   if (result.success) {
-  //     // 更新状态
-  //     await updateWindowState();
-  //   } else {
-  //     console.error("切换最大化失败:", result.error);
-  //   }
+  const result = await ipc.invoke("ui:window-toggle-maximize");
+    if (result.success) {
+      // 更新状态
+      await updateWindowState();
+    } else {
+      console.error("切换最大化失败:", result.error);
+    }
 }
 
 // 关闭窗口
