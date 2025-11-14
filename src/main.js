@@ -131,6 +131,7 @@ async function createWindow() {
   registerNetworkHandlers(viewManager);
   registerViewHandlers(viewManager, mainView);
   registerUIHandlers(viewManager, mainWindow, mainView);
+
   logger.debug("所有处理器注册完成");
 
   // 5. 设置 IPC 处理器（必须在加载页面之前完成）
@@ -162,11 +163,12 @@ async function createWindow() {
     url: resolve("web", "multidimensional_table.html"),
   });
   viewManager.createView({
-    url: `http://localhost:${
-      IPC_CONFIG.HTTP_PORT
-    }/web/#/?serverUrl=${encodeURIComponent(
-      `http://localhost:${IPC_CONFIG.WS_PORT}`
-    )}`,
+    url: `http://localhost:${IPC_CONFIG.HTTP_PORT
+      }/web/#/?serverUrl=${encodeURIComponent(
+        `http://localhost:${IPC_CONFIG.WS_PORT}`
+      )}&httpUrl=${encodeURIComponent(
+        `http://localhost:${IPC_CONFIG.HTTP_PORT}`
+      )}`,
   });
   viewManager.createView({
     url: `http://localhost:${IPC_CONFIG.POCKETBASE_PORT}/_`,

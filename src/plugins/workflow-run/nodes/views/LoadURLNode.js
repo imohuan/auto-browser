@@ -24,6 +24,18 @@ export class ViewsLoadURLNode extends HttpFlowNode {
         description: "URL",
         required: true,
       },
+      {
+        name: "waitForLoad",
+        type: "boolean",
+        description: "是否等待加载完成",
+        required: false,
+      },
+      {
+        name: "timeout",
+        type: "number",
+        description: "超时时间（毫秒）",
+        required: false,
+      },
     ];
   }
 
@@ -45,10 +57,12 @@ export class ViewsLoadURLNode extends HttpFlowNode {
 
     const viewId = this.getInput(inputs, "viewId");
     const url = this.getInput(inputs, "url");
+    const waitForLoad = this.getInput(inputs, "waitForLoad") ?? false;
+    const timeout = this.getInput(inputs, "timeout") ?? 30000;
 
-    this.logger.debug("加载URL", { viewId, url });
+    this.logger.debug("加载URL", { viewId, url, waitForLoad, timeout });
 
-    return await this.invoke("views:loadURL", viewId, url);
+    return await this.invoke("views:loadURL", viewId, url, waitForLoad, timeout);
   }
 }
 

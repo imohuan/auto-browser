@@ -257,22 +257,22 @@ class ViewManager {
     // 监听webContents销毁事件（重要：防止登录窗口关闭导致渲染进程崩溃）
     view.webContents.on('destroyed', () => {
       logger.info(`webContents已销毁: ${viewId}`);
-      
+
       // 自动清理view资源
       try {
         // 从baseWindow移除（如果还未移除）
         if (this.baseWindow.contentView.children.includes(view)) {
           this.baseWindow.contentView.removeChildView(view);
         }
-        
+
         // 从Map中移除
         this.views.delete(viewId);
-        
+
         // 如果是活动视图，清空活动视图ID
         if (this.activeViewId === viewId) {
           this.activeViewId = null;
         }
-        
+
         // 通知主渲染进程视图已销毁
         if (this.mainView?.webContents && !this.mainView.webContents.isDestroyed()) {
           this.mainView.webContents.send('views:sync', {
@@ -281,7 +281,7 @@ class ViewManager {
             views: this.getAllViews()
           });
         }
-        
+
         logger.info(`视图资源已自动清理: ${viewId}`);
       } catch (error) {
         logger.error(`清理视图资源失败: ${viewId}`, error);
@@ -377,13 +377,13 @@ class ViewManager {
     if (!viewData) {
       return null;
     }
-    
+
     // 检查webContents是否已被销毁
     if (viewData.view.webContents.isDestroyed()) {
       logger.warn(`视图的webContents已销毁: ${viewId}`);
       return null;
     }
-    
+
     return viewData.view;
   }
 
@@ -416,21 +416,168 @@ class ViewManager {
 
   /**
    * 加载 URL
+   * @param {string} viewId - 视图ID
+   * @param {string} url - 要加载的URL
+   * @param {boolean} waitForLoad - 是否等待加载完成，默认false
+   * @param {number} timeout - 超时时间（毫秒），默认30000
    */
-  async loadURL(viewId, url) {
+  async loadURL(viewId, url, waitForLoad = false, timeout = 30000) {
     const view = this.getView(viewId);
     if (!view) {
       throw new Error(`视图不存在: ${viewId}`);
     }
 
-    logger.info('视图开始加载', { viewId, url });
+    logger.info('视图开始加载', { viewId, url, waitForLoad, timeout });
     await view.webContents.loadURL(url);
 
     // 更新配置
     const viewData = this.views.get(viewId);
     viewData.config.url = url;
 
-    logger.info('视图加载完成', { viewId, url });
+    // 如果需要等待加载完成
+    if (waitForLoad) {
+      const loaded = await this.waitViewLoaded(viewId, timeout);
+      if (!loaded) {
+        logger.warn('视图加载超时或失败', { viewId, url, timeout });
+        throw new Error(`视图加载超时或失败: ${viewId}`);
+      }
+      logger.info('视图加载完成', { viewId, url });
+    } else {
+      logger.info('视图URL已设置（未等待加载完成）', { viewId, url });
+    }
+  }
+
+  /**
+   * 等待视图加载完成
+   * @param {string} viewId - 视图ID
+   * @param {number} timeout - 超时时间（毫秒），默认30000
+   * @returns {Promise<boolean>} 返回true表示加载成功，false表示超时或失败
+   */
+  async waitViewLoaded(viewId, timeout = 30000) {
+    const view = this.getView(viewId);
+    if (!view) {
+      throw new Error(`视图不存在: ${viewId}`);
+    }
+
+    const webContents = view.webContents;
+
+    // 检查是否已经加载完成
+    if (!webContents.isLoading()) {
+      // 检查是否有加载错误
+      const viewData = this.views.get(viewId);
+      if (viewData?.config.hasLoadError) {
+        logger.warn(`视图加载失败: ${viewId}`);
+        return false;
+      }
+      logger.debug(`视图已加载完成: ${viewId}`);
+      return true;
+    }
+
+    return new Promise((resolve) => {
+      let isResolved = false;
+      let timeoutId = null;
+      let finishHandler = null;
+      let stopHandler = null;
+      let failHandler = null;
+
+      // 清理函数
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        if (finishHandler) {
+          webContents.removeListener('did-finish-load', finishHandler);
+          finishHandler = null;
+        }
+        if (stopHandler) {
+          webContents.removeListener('did-stop-loading', stopHandler);
+          stopHandler = null;
+        }
+        if (failHandler) {
+          webContents.removeListener('did-fail-load', failHandler);
+          failHandler = null;
+        }
+      };
+
+      // 完成处理函数
+      const handleFinish = (success = true) => {
+        if (isResolved) return;
+        isResolved = true;
+        cleanup();
+        logger.debug(`视图加载${success ? '完成' : '失败'}: ${viewId}`);
+        resolve(success);
+      };
+
+      // 加载完成事件
+      finishHandler = () => {
+        const viewData = this.views.get(viewId);
+        if (viewData?.config.hasLoadError) {
+          handleFinish(false);
+        } else {
+          handleFinish(true);
+        }
+      };
+
+      // 停止加载事件（某些页面可能不触发 did-finish-load）
+      stopHandler = () => {
+        // 延迟一小段时间，确保 did-finish-load 有机会先触发
+        setTimeout(() => {
+          if (!isResolved && !webContents.isLoading()) {
+            const viewData = this.views.get(viewId);
+            if (viewData?.config.hasLoadError) {
+              handleFinish(false);
+            } else {
+              handleFinish(true);
+            }
+          }
+        }, 100);
+      };
+
+      // 加载失败事件
+      failHandler = (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        // 只处理主框架的加载失败
+        if (!isMainFrame) return;
+
+        // 忽略一些可以忽略的错误
+        const ignoredErrors = [-3, -27]; // ERR_ABORTED, ERR_BLOCKED_BY_CLIENT
+        if (ignoredErrors.includes(errorCode)) {
+          logger.debug(`忽略的加载错误: ${viewId}`, { errorCode, errorDescription });
+          return;
+        }
+
+        logger.warn(`视图加载失败: ${viewId}`, {
+          errorCode,
+          errorDescription,
+          validatedURL,
+        });
+        handleFinish(false);
+      };
+
+      // 注册事件监听器
+      webContents.once('did-finish-load', finishHandler);
+      webContents.once('did-stop-loading', stopHandler);
+      webContents.once('did-fail-load', failHandler);
+
+      // 设置超时
+      timeoutId = setTimeout(() => {
+        logger.warn(`等待视图加载超时: ${viewId}`, { timeout });
+        handleFinish(false);
+      }, timeout);
+
+      // 额外检查：如果页面在注册监听器后立即完成加载
+      // 使用 setImmediate 确保事件已经触发
+      setImmediate(() => {
+        if (!isResolved && !webContents.isLoading()) {
+          const viewData = this.views.get(viewId);
+          if (viewData?.config.hasLoadError) {
+            handleFinish(false);
+          } else {
+            handleFinish(true);
+          }
+        }
+      });
+    });
   }
 
   /**

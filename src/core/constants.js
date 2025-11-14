@@ -35,6 +35,12 @@ export const APP_CONFIG = {
   get RESULT_FILE() {
     return resolveUserData('result.json');
   },
+  get FILE_DIR() {
+    return isPackaged() ? resolveUserData('files') : resolveRoot('files');
+  },
+  get IMAGES_DIR() {
+    return isPackaged() ? resolveUserData('files', 'images') : resolveRoot('files', 'images');
+  },
   HTTP_PORT: IPC_CONFIG.HTTP_PORT, // HTTP 服务端口
   WS_PORT: IPC_CONFIG.WS_PORT, // WebSocket 服务端口
   VITE_DEV_SERVER: `http://localhost:${IPC_CONFIG.VITE_PORT}`, // Vite 开发服务器地址

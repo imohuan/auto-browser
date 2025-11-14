@@ -1,0 +1,1 @@
+open "http://localhost:3000/#/?serverUrl=http://localhost:3231&httpUrl=http://localhost:3230"

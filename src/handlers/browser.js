@@ -3,6 +3,10 @@
 
 import { ipcManager } from '../core/ipc-manager.js';
 import { createLogger } from '../core/logger.js';
+import { APP_CONFIG } from '../core/constants.js';
+import { ensureDir } from '../utils/file-utils.js';
+import fs from 'fs';
+import path from 'path';
 
 const logger = createLogger('handlers/browser');
 
@@ -98,13 +102,32 @@ export function registerBrowserHandlers(viewManager) {
         if (!view) {
           throw new Error(`视图不存在: ${viewId}`);
         }
-
-        const image = await view.webContents.capturePage();
+        const { width, height } = view.getBounds();
+        const image = await view.webContents.capturePage({
+          x: 0, y: 0, width, height
+        }, { stayHidden: true });
         const buffer = image.toPNG();
-        const base64 = buffer.toString('base64');
+
+        // 确保图片目录存在
+        ensureDir(APP_CONFIG.IMAGES_DIR);
+
+        // 生成文件名（使用时间戳）
+        const timestamp = Date.now();
+        const filename = `${timestamp}.png`;
+        const filePath = path.join(APP_CONFIG.IMAGES_DIR, filename);
+
+        // 保存图片到本地
+        fs.writeFileSync(filePath, buffer);
+
+        // 生成URL路径
+        const relativePath = `/image/${filename}`;
+        const fullUrl = `http://127.0.0.1:${APP_CONFIG.HTTP_PORT}${relativePath}`;
+
+        logger.debug(`截图已保存: ${filePath}`);
 
         return {
-          image: `data:image/png;base64,${base64}`,
+          url: fullUrl,
+          path: relativePath,
           size: buffer.length,
         };
       },

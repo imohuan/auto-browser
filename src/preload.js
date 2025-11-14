@@ -39,6 +39,10 @@ exposeInMainWorld("pocketbaseAPI", {
   url: APP_CONFIG.POCKETBASE_URL,
 });
 
+exposeInMainWorld("httpApi", {
+  url: `http://127.0.0.1:${APP_CONFIG.HTTP_PORT}`,
+});
+
 /**
  * 暴露统一的 IPC 调用接口到渲染进程
  */

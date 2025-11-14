@@ -61,6 +61,9 @@ import { NetworkStartWebRequestCaptureNode } from "./nodes/network/StartWebReque
 import { NetworkStopDebuggerCaptureNode } from "./nodes/network/StopDebuggerCaptureNode.js";
 import { NetworkStopWebRequestCaptureNode } from "./nodes/network/StopWebRequestCaptureNode.js";
 
+import { registerCacheHandlers } from "./cache-handler-server.js";
+import { APP_CACHE_TABLE_SCHEMA } from "../multidimensional_table/pocketbase/tables.js"
+
 export default class WorkflowRunPlugin extends BasePlugin {
   constructor() {
     super("workflow-run");
@@ -80,6 +83,8 @@ export default class WorkflowRunPlugin extends BasePlugin {
    */
   async init() {
     this.logger.info("初始化工作流节点执行器插件...");
+
+
 
     try {
       // 使用 workflow-flow-nodes 构建节点类注册表（注册所有节点）
@@ -139,6 +144,10 @@ export default class WorkflowRunPlugin extends BasePlugin {
       const pb = pluginManager.getPlugin("multidimensional_table")?.pb;
       if (pb) {
         historyHandler.setPb(pb);
+        registerCacheHandlers({
+          pbUrl: APP_CONFIG.POCKETBASE_URL,
+          collectionName: APP_CACHE_TABLE_SCHEMA.name
+        });
       }
 
       // 创建并启动 WebSocket 服务器（仅需端口与节点注册表）

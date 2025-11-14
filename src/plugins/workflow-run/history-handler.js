@@ -21,24 +21,37 @@ export async function createPocketBaseHistoryHandler() {
       pb = _pb;
     },
     /**
-     * 获取历史记录
+     * 获取历史记录（分页）
      * @param {string} workflowId - 工作流ID，可选
-     * @param {number} limit - 限制返回数量，可选
-     * @returns {Promise<Array>} 返回历史记录数组
+     * @param {number} page - 页码，默认 1
+     * @param {number} pageSize - 每页数量，默认 20
+     * @param {string} requestId - 请求ID（执行ID），可选，用于精确查找
+     * @returns {Promise<Object>} 返回分页结果对象，包含 history、total、page、pageSize
      */
-    async getHistory(workflowId, limit) {
+    async getHistory(workflowId, page = 1, pageSize = 20, requestId = null) {
       try {
-        let filter = "";
+        const filters = [];
+
+        // 如果提供了 workflowId，过滤工作流
         if (workflowId) {
-          filter = `workflowId = "${workflowId}"`;
+          filters.push(`workflowId = "${workflowId}"`);
         }
 
-        const result = await pb.collection(collectionName).getList(1, limit || 1000, {
+        // 如果提供了 requestId（执行ID），精确匹配
+        if (requestId) {
+          filters.push(`executionId = "${requestId}"`);
+        }
+
+        const filter = filters.length > 0 ? filters.join(" && ") : "";
+
+        // PocketBase 的 getList 方法：getList(page, perPage, options)
+        const result = await pb.collection(collectionName).getList(page, pageSize, {
           filter,
           sort: "-startTime", // 按开始时间倒序
         });
 
-        return result.items.map((item) => ({
+        // 映射数据字段
+        const history = result.items.map((item) => ({
           executionId: item.executionId,
           workflowId: item.workflowId,
           success: item.success,
@@ -56,9 +69,23 @@ export async function createPocketBaseHistoryHandler() {
           nodes: item.nodes,
           edges: item.edges,
         }));
+
+        // 返回分页结果
+        return {
+          history,
+          total: result.totalItems,
+          page: result.page,
+          pageSize: result.perPage,
+        };
       } catch (error) {
         console.error("获取历史记录失败:", error);
-        return [];
+        // 返回空的分页结果
+        return {
+          history: [],
+          total: 0,
+          page: page || 1,
+          pageSize: pageSize || 20,
+        };
       }
     },
 

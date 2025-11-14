@@ -78,9 +78,9 @@ export function registerViewHandlers(viewManager, mainView) {
     /**
      * 加载 URL
      */
-    'views:loadURL': async (viewId, url) => {
-      await viewManager.loadURL(viewId, url);
-      return { success: true, url };
+    'views:loadURL': async (viewId, url, waitForLoad = false, timeout = 30000) => {
+      await viewManager.loadURL(viewId, url, waitForLoad, timeout);
+      return { success: true, url, waitForLoad, timeout };
     },
 
     /**

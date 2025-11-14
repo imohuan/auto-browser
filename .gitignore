@@ -18,6 +18,7 @@ build/
 out/
 src/renderer/dist/
 
+files/
 userData/
 .backup/
 

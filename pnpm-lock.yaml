@@ -24,8 +24,8 @@ importers:
         specifier: ^0.22.0
         version: 0.22.1
       workflow-flow-nodes:
-        specifier: 0.1.5
-        version: 0.1.5
+        specifier: 0.1.8
+        version: 0.1.8
       workflow-node-executor:
         specifier: ^0.1.3
         version: 0.1.3
@@ -2451,8 +2451,8 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
-  workflow-flow-nodes@0.1.5:
-    resolution: {integrity: sha512-E3JiV81ZgT0Bcr5uskYCVYNwQ2KkYcsuDu8hvQi87tmEsllJ2b3rNPNOnGNRCmRLLlizOejmkN3ZK87ynjNlGw==}
+  workflow-flow-nodes@0.1.8:
+    resolution: {integrity: sha512-il1JbP74KWArV6Q7bmHohAcHJyGcyqjCErZ1ujcRxWmS+K1abji8nYQBYJl6O5raB3Y+ym92MLbllSIEr2qVag==}
 
   workflow-node-executor@0.1.3:
     resolution: {integrity: sha512-QJ45JAVXSIoPva31xt+D7svI0TG+Kf92X9YLbqo17p4aHNT7poY+YZn9d1NOAQ83q3BMIv8upQnNfbXga8AhWw==}
@@ -5053,7 +5053,7 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
-  workflow-flow-nodes@0.1.5:
+  workflow-flow-nodes@0.1.8:
     dependencies:
       ws: 8.18.3
     transitivePeerDependencies:

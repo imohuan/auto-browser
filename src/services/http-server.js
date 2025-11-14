@@ -5,7 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { createLogger } from '../core/logger.js';
-import { HTTP_CONFIG } from '../core/constants.js';
+import { HTTP_CONFIG, APP_CONFIG } from '../core/constants.js';
 import { ipcManager } from '../core/ipc-manager.js';
 import { resolve } from '../utils/path-resolver.js';
 
@@ -167,6 +167,22 @@ class HTTPServer {
     });
 
     logger.debug(`Node Editor 静态服务已配置: ${nodeEditorPath}`);
+
+    // 图片静态文件服务
+    const imagesDir = APP_CONFIG.IMAGES_DIR;
+    this.app.use('/image', express.static(imagesDir, {
+      setHeaders: (res, filePath) => {
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.png') {
+          res.setHeader('Content-Type', 'image/png');
+        } else if (ext === '.jpg' || ext === '.jpeg') {
+          res.setHeader('Content-Type', 'image/jpeg');
+        } else if (ext === '.gif') {
+          res.setHeader('Content-Type', 'image/gif');
+        }
+      },
+    }));
+    logger.debug(`图片静态服务已配置: ${imagesDir}`);
 
     // 404 处理
     this.app.use((req, res) => {

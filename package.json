@@ -106,7 +106,7 @@
     "eventsource": "^4.0.0",
     "express": "^5.1.0",
     "pocketbase": "^0.22.0",
-    "workflow-flow-nodes": "0.1.5",
+    "workflow-flow-nodes": "0.1.8",
     "workflow-node-executor": "^0.1.3",
     "ws": "^8.18.3"
   },
