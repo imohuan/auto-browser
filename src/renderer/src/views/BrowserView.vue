@@ -346,9 +346,7 @@ function calculateTabLayout() {
 
   // 先计算不包含新建按钮的可用宽度（用于判断按钮是否需要固定）
   const availableWidthWithoutButton =
-    containerWidth -
-    TOGGLE_BUTTON_WIDTH -
-    CONTAINER_PADDING;
+    containerWidth - TOGGLE_BUTTON_WIDTH - CONTAINER_PADDING;
 
   // 计算标签页需要的最小宽度（包括间隙）
   const totalGap = (tabCount - 1) * TAB_GAP;
@@ -559,49 +557,83 @@ async function updateNavigationState() {
   }
 }
 
+// 标签页切换锁，防止并发切换
+let isSwitchingTab = false;
+
 // 选择标签页
 async function handleSelectTab(viewId: string) {
   const view = viewsStore.views.find((v) => v.id === viewId);
   if (!view) return;
 
-  console.log(
-    `[标签页切换] 开始切换到标签页: ${view.title || "新标签页"} (ID: ${viewId})`
-  );
-
-  // 确保后端视图存在
-  console.log(`[标签页切换] 确保后端视图存在`);
-  const backendId = await ensureBackend(view);
-  if (!backendId) {
-    console.error(`[标签页切换] 创建后端视图失败`);
+  // 如果点击的是当前选中的标签页，直接返回
+  if (view.selected) {
+    console.log(`[标签页切换] 标签页已选中，无需切换: ${viewId}`);
     return;
   }
 
-  // 隐藏所有视图，确保只有选中的视图显示
-  // 这是安全措施，避免多个视图同时显示
-  for (const v of viewsStore.views) {
-    if (v.backendId && v.backendId !== backendId) {
-      await ipc.setViewVisible(v.backendId, false);
-    }
+  // 如果已经在切换中，忽略本次请求
+  if (isSwitchingTab) {
+    console.log(`[标签页切换] 正在切换中，忽略本次切换请求: ${viewId}`);
+    return;
   }
 
-  // 选中新标签页
-  viewsStore.selectView(viewId);
+  isSwitchingTab = true;
 
-  // 等待DOM更新，然后显示新选中的视图
-  await nextTick();
+  try {
+    console.log(
+      `[标签页切换] 开始切换到标签页: ${
+        view.title || "新标签页"
+      } (ID: ${viewId})`
+    );
 
-  // 先设置bounds，确保view在正确的位置
-  console.log(`[标签页切换] 更新视图位置和大小`);
-  await updateViewBounds();
+    // 确保后端视图存在
+    console.log(`[标签页切换] 确保后端视图存在`);
+    const backendId = await ensureBackend(view);
+    if (!backendId) {
+      console.error(`[标签页切换] 创建后端视图失败`);
+      return; // finally 块会释放锁
+    }
 
-  // 再显示view
-  console.log(`[标签页切换] 显示视图 (backendId: ${backendId})`);
-  await ipc.setViewVisible(backendId, true);
+    // 第一步：先隐藏所有视图（包括当前选中的视图）
+    // 这确保了在显示新视图之前，所有旧视图都已经隐藏
+    console.log(`[标签页切换] 隐藏所有视图`);
+    const hidePromises = [];
+    for (const v of viewsStore.views) {
+      if (v.backendId) {
+        console.log(
+          `[标签页切换] 隐藏视图: ${v.title || "新标签页"} (backendId: ${
+            v.backendId
+          })`
+        );
+        hidePromises.push(ipc.setViewVisible(v.backendId, false));
+      }
+    }
+    // 等待所有隐藏操作完成
+    await Promise.all(hidePromises);
+    console.log(`[标签页切换] 所有视图已隐藏`);
 
-  // 更新导航状态
-  await updateNavigationState();
+    // 第二步：更新状态，选中新标签页
+    viewsStore.selectView(viewId);
 
-  console.log(`[标签页切换] 切换完成`);
+    // 等待DOM更新
+    await nextTick();
+
+    // 第三步：设置bounds，确保view在正确的位置
+    console.log(`[标签页切换] 更新视图位置和大小`);
+    await updateViewBounds();
+
+    // 第四步：显示新选中的视图
+    console.log(`[标签页切换] 显示视图 (backendId: ${backendId})`);
+    await ipc.setViewVisible(backendId, true);
+
+    // 第五步：更新导航状态
+    await updateNavigationState();
+
+    console.log(`[标签页切换] 切换完成`);
+  } finally {
+    // 无论成功还是失败，都要释放锁
+    isSwitchingTab = false;
+  }
 }
 
 // 新建标签页
