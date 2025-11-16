@@ -24,8 +24,8 @@ importers:
         specifier: ^0.22.0
         version: 0.22.1
       workflow-flow-nodes:
-        specifier: 0.1.8
-        version: 0.1.8
+        specifier: 0.2.0
+        version: 0.2.0
       workflow-node-executor:
         specifier: ^0.1.3
         version: 0.1.3
@@ -755,6 +755,9 @@ packages:
 
   axios@1.13.1:
     resolution: {integrity: sha512-hU4EGxxt+j7TQijx1oYdAjw4xuIp1wRQSsbMFwSthCWeBQur1eF+qJ5iQ5sN3Tw8YRzQNKb8jszgBdMDVqwJcw==}
+
+  axios@1.13.2:
+    resolution: {integrity: sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==}
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -1856,6 +1859,18 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
+  openai@6.9.0:
+    resolution: {integrity: sha512-n2sJRYmM+xfJ0l3OfH8eNnIyv3nQY7L08gZQu3dw6wSdfPtKAk92L83M2NIP5SS8Cl/bsBBG3yKzEOjkx0O+7A==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   opencollective-postinstall@2.0.3:
     resolution: {integrity: sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==}
     hasBin: true
@@ -2451,8 +2466,8 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
-  workflow-flow-nodes@0.1.8:
-    resolution: {integrity: sha512-il1JbP74KWArV6Q7bmHohAcHJyGcyqjCErZ1ujcRxWmS+K1abji8nYQBYJl6O5raB3Y+ym92MLbllSIEr2qVag==}
+  workflow-flow-nodes@0.2.0:
+    resolution: {integrity: sha512-y0szFXAUZZNtD3suZZSTAT3FquoqIoZqXQquyQLGw332VaaBtSlcfeA1bAYy/U4m2D80AvBeQn89F5sqUaBblQ==}
 
   workflow-node-executor@0.1.3:
     resolution: {integrity: sha512-QJ45JAVXSIoPva31xt+D7svI0TG+Kf92X9YLbqo17p4aHNT7poY+YZn9d1NOAQ83q3BMIv8upQnNfbXga8AhWw==}
@@ -3222,6 +3237,14 @@ snapshots:
       possible-typed-array-names: 1.1.0
 
   axios@1.13.1:
+    dependencies:
+      follow-redirects: 1.15.11
+      form-data: 4.0.4
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
+
+  axios@1.13.2:
     dependencies:
       follow-redirects: 1.15.11
       form-data: 4.0.4
@@ -4452,6 +4475,10 @@ snapshots:
     dependencies:
       mimic-fn: 2.1.0
 
+  openai@6.9.0(ws@8.18.3):
+    optionalDependencies:
+      ws: 8.18.3
+
   opencollective-postinstall@2.0.3: {}
 
   optionator@0.8.3:
@@ -5053,12 +5080,16 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
-  workflow-flow-nodes@0.1.8:
+  workflow-flow-nodes@0.2.0:
     dependencies:
+      axios: 1.13.2
+      openai: 6.9.0(ws@8.18.3)
       ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
+      - debug
       - utf-8-validate
+      - zod
 
   workflow-node-executor@0.1.3:
     dependencies:

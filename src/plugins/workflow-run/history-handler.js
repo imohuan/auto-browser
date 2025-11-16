@@ -22,53 +22,86 @@ export async function createPocketBaseHistoryHandler() {
     },
     /**
      * 获取历史记录（分页）
-     * @param {string} workflowId - 工作流ID，可选
+     * @param {string} executionId - 执行ID，可选。如果提供则返回单条完整记录
      * @param {number} page - 页码，默认 1
      * @param {number} pageSize - 每页数量，默认 20
-     * @param {string} requestId - 请求ID（执行ID），可选，用于精确查找
      * @returns {Promise<Object>} 返回分页结果对象，包含 history、total、page、pageSize
      */
-    async getHistory(workflowId, page = 1, pageSize = 20, requestId = null) {
+    async getHistory(executionId, page = 1, pageSize = 20) {
       try {
-        const filters = [];
+        // 如果指定了 executionId，直接查找单条记录
+        if (executionId) {
+          try {
+            const record = await pb
+              .collection(collectionName)
+              .getFirstListItem(`executionId = "${executionId}"`);
 
-        // 如果提供了 workflowId，过滤工作流
-        if (workflowId) {
-          filters.push(`workflowId = "${workflowId}"`);
+            // 映射数据字段，返回完整的 nodes、edges、nodeResults
+            const historyItem = {
+              executionId: record.executionId,
+              workflowId: record.workflowId,
+              success: record.success,
+              startTime: record.startTime,
+              endTime: record.endTime,
+              duration: record.duration,
+              error: record.error,
+              executedNodeCount: record.executedNodeCount,
+              skippedNodeCount: record.skippedNodeCount,
+              cachedNodeCount: record.cachedNodeCount,
+              executedNodeIds: record.executedNodeIds,
+              skippedNodeIds: record.skippedNodeIds,
+              cachedNodeIds: record.cachedNodeIds,
+              nodeResults: record.nodeResults,
+              nodes: record.nodes,
+              edges: record.edges,
+            };
+
+            // 返回单条记录
+            return {
+              history: [historyItem],
+              total: 1,
+              page: 1,
+              pageSize: 1,
+            };
+          } catch (error) {
+            // 未找到记录（404）
+            if (error.status === 404) {
+              return {
+                history: [],
+                total: 0,
+                page: 1,
+                pageSize: 1,
+              };
+            }
+            throw error;
+          }
         }
 
-        // 如果提供了 requestId（执行ID），精确匹配
-        if (requestId) {
-          filters.push(`executionId = "${requestId}"`);
-        }
-
-        const filter = filters.length > 0 ? filters.join(" && ") : "";
-
+        // 未指定 executionId，返回所有历史记录（不包含 nodes、edges、nodeResults）
         // PocketBase 的 getList 方法：getList(page, perPage, options)
         const result = await pb.collection(collectionName).getList(page, pageSize, {
-          filter,
           sort: "-startTime", // 按开始时间倒序
         });
 
-        // 映射数据字段
-        const history = result.items.map((item) => ({
-          executionId: item.executionId,
-          workflowId: item.workflowId,
-          success: item.success,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          duration: item.duration,
-          error: item.error,
-          executedNodeCount: item.executedNodeCount,
-          skippedNodeCount: item.skippedNodeCount,
-          cachedNodeCount: item.cachedNodeCount,
-          executedNodeIds: item.executedNodeIds,
-          skippedNodeIds: item.skippedNodeIds,
-          cachedNodeIds: item.cachedNodeIds,
-          nodeResults: item.nodeResults,
-          nodes: item.nodes,
-          edges: item.edges,
-        }));
+        // 映射数据字段，移除 nodes、edges、nodeResults 以减少数据传输
+        const history = result.items.map((item) => {
+          const { nodes, edges, nodeResults, ...rest } = item;
+          return {
+            executionId: rest.executionId,
+            workflowId: rest.workflowId,
+            success: rest.success,
+            startTime: rest.startTime,
+            endTime: rest.endTime,
+            duration: rest.duration,
+            error: rest.error,
+            executedNodeCount: rest.executedNodeCount,
+            skippedNodeCount: rest.skippedNodeCount,
+            cachedNodeCount: rest.cachedNodeCount,
+            executedNodeIds: rest.executedNodeIds,
+            skippedNodeIds: rest.skippedNodeIds,
+            cachedNodeIds: rest.cachedNodeIds,
+          };
+        });
 
         // 返回分页结果
         return {

@@ -1,0 +1,22 @@
+import{F as e,R as t,U as n,W as r,dt as i,rt as a,wt as o}from"./index-DIItrjPD.js";import"./editor.api-COeqqywE.js";import"./monaco.contribution-0nwrB2X9.js";import{t as s}from"./_plugin-vue_export-helper-DEnkkObV.js";import{n as c,t as l}from"./IconReset-Bc2P_LYE.js";import{t as u}from"./CodeEditor-uUgUKgiO.js";var d={},f={class:`w-4 h-4`,viewBox:`0 0 24 24`,fill:`none`,xmlns:`http://www.w3.org/2000/svg`};function p(n,r){return a(),t(`svg`,f,[...r[0]||=[e(`path`,{d:`M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z`,stroke:`currentColor`,"stroke-width":`1.5`,"stroke-linecap":`round`,"stroke-linejoin":`round`},null,-1),e(`path`,{d:`M21 12a9 9 0 11-18 0 9 9 0 0118 0z`,stroke:`currentColor`,"stroke-width":`1.5`},null,-1)]])}var m=s(d,[[`render`,p]]),h={class:`h-screen flex flex-col bg-slate-50`},g={class:`flex items-center justify-between px-5 py-3 bg-white border-b border-slate-200 shrink-0`},_={class:`flex items-center gap-3`},v={class:`flex items-center justify-center w-7 h-7 rounded-lg bg-linear-to-br from-purple-500 to-purple-700 text-white transition-transform duration-200 hover:scale-105`},y={class:`flex items-center gap-2`},b={class:`flex-1 flex overflow-hidden bg-[#f6f6f8]`},x={class:`w-1/2 flex flex-col border-r border-slate-200 bg-white`},S={class:`flex-1 overflow-hidden`},C={class:`w-1/2 flex flex-col bg-white`},w={class:`flex-1 overflow-hidden`},T=`/**
+ * 主函数入口
+ * @param {MainParams} params - 函数参数
+ */
+export async function main(params) {
+  return {
+    receivedKeys: Object.keys(params),
+    example: params,
+  };
+}`,E=`/**
+ * 主函数参数类型定义
+ */
+interface MainParams {
+  /** 示例字符串参数 */
+  name?: string;
+  /** 示例数字参数 */
+  age?: number;
+  /** 示例对象参数 */
+  data?: Record<string, any>;
+}
+`,D=s(r({__name:`CodeEditorPreview`,setup(r){let s=o(),d=o(),f=o(E),p=o(T),D=null,O=null;function k(e,t){console.log(`✅ 类型声明编辑器已就绪`),j()}function A(e,t){D=t,console.log(`✅ 代码编辑器已就绪`),j()}function j(){if(!D)return;O&&=(O.dispose(),null);let e=f.value.trim();if(!e){console.log(`📝 无类型声明`);return}console.log(`📝 更新类型声明:
+`,e);let t=D.Uri.parse(`file:///node_modules/@types/code-node/index.d.ts`);O=D.languages.typescript.javascriptDefaults.addExtraLib(e,t.toString())}i(f,()=>{j()});function M(){p.value=T,f.value=E}function N(){console.log(`执行代码:`,p.value)}return(r,i)=>(a(),t(`div`,h,[e(`div`,g,[e(`div`,_,[e(`div`,v,[n(c,{class:`w-4 h-4`})]),i[2]||=e(`h3`,{class:`text-[15px] font-medium text-[#1a1a1a] tracking-tight`},` 代码编辑器预览 `,-1)]),e(`div`,y,[e(`button`,{type:`button`,class:`inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-700`,onClick:M},[n(l,{class:`w-3.5 h-3.5`}),i[3]||=e(`span`,null,`重置代码`,-1)]),e(`button`,{type:`button`,class:`inline-flex items-center gap-1.5 rounded-md border border-purple-500 bg-purple-500 px-3 py-1.5 text-xs text-white transition hover:bg-purple-600 hover:border-purple-600`,onClick:N},[n(m,{class:`w-3.5 h-3.5`}),i[4]||=e(`span`,null,`执行代码`,-1)])])]),e(`div`,b,[e(`div`,x,[i[5]||=e(`div`,{class:`flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200 shrink-0`},[e(`div`,{class:`flex items-center gap-2`},[e(`span`,{class:`text-sm font-medium text-slate-600`},`类型声明`),e(`span`,{class:`text-xs text-slate-400`},`TypeScript`)])],-1),e(`div`,S,[n(u,{ref_key:`typeEditorRef`,ref:s,modelValue:f.value,"onUpdate:modelValue":i[0]||=e=>f.value=e,language:`typescript`,theme:`vs`,onReady:k},null,8,[`modelValue`])])]),e(`div`,C,[i[6]||=e(`div`,{class:`flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200 shrink-0`},[e(`div`,{class:`flex items-center gap-2`},[e(`span`,{class:`text-sm font-medium text-slate-600`},`代码编辑器`),e(`span`,{class:`text-xs text-slate-400`},`JavaScript`)])],-1),e(`div`,w,[n(u,{ref_key:`codeEditorRef`,ref:d,modelValue:p.value,"onUpdate:modelValue":i[1]||=e=>p.value=e,language:`javascript`,theme:`vs`,onReady:A},null,8,[`modelValue`])])])])]))}}),[[`__scopeId`,`data-v-1bd70488`]]);export{D as default};
